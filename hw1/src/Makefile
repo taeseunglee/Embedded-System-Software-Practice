@@ -1,10 +1,9 @@
 SRC_DIR = .
-TARGET = util
-LIB = error_check device environment define fpga_dot_font
+TARGET = util environment
 
-build: build.core build.process $(addsuffix .h, $(LIB))
+build: build.core build.process $(LIB)
 	$(CC) $(C_FLAGS) -c main.c -o $(OBJS_DIR)/main.o
-	$(CC) $(C_FLAGS) -o $(BUILD_DIR)/$(MAIN_PROG) $(OBJS_DIR)/*.o
+	$(CC) $(C_FLAGS) -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o
 
 build.core: $(addsuffix .o, $(TARGET))
 

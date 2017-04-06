@@ -1,11 +1,15 @@
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
 
-#include "lib/error_check.h"
-#include "lib/device.h"
-#include "lib/environment.h"
-#include "lib/define.h"
-#include "src/util.h"
+#include "../../lib/error_check.h"
+#include "../../lib/device.h"
+#include "../../lib/define.h"
+#include "../../src/environment.h"
+#include "../util.h"
+
+// For fpga dot font
+// #include "../../lib/fpga_dot_font.h"
+
 
 #include <stdio.h>
 #include <string.h>
@@ -34,8 +38,4 @@
 
 // Multi thread
 #include <pthread.h>
-
-// For fpga dot font
-#include "lib/fpga_dot_font.h"
-
 #endif

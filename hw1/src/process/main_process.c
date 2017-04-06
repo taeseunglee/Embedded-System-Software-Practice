@@ -1,4 +1,7 @@
-#include "src/process/process.h"
+#include "./main_process.h"
+#include "../../lib/fpga_dot_font.h"
+
+extern const unsigned int minus_one;
 
 int main_process(struct environment *env) {
   // main process
@@ -23,7 +26,7 @@ int main_process(struct environment *env) {
   /* declare and set variables for Mode1 */
   pthread_t flicker_thread;
   struct argu_led_flick argu_flick;
-  argu_flick.env = &env;
+  argu_flick.env = env;
   time_t rawtime;
   time(&rawtime);
   struct tm *timeinfo = localtime (&rawtime);
@@ -82,7 +85,7 @@ int main_process(struct environment *env) {
   /* declare and set variables for Mode4 */
   struct cursor cursor;
   struct argu_mode_cursor argu_cursor;
-  argu_cursor.env = &env;
+  argu_cursor.env = env;
   pthread_t cursor_thread;
   unsigned int cursor_hide = 0;
   unsigned char mask[10] = {0};
@@ -102,8 +105,8 @@ int main_process(struct environment *env) {
       switch (code) {
       case BACK:
           {
-            kill(env.pid_input, SIGINT);
-            kill(env.pid_output, SIGINT);
+            kill(env->pid_input, SIGINT);
+            kill(env->pid_output, SIGINT);
             kill(getpid(), SIGINT);
           } break;
       case VOL_P: 

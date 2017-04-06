@@ -1,15 +1,4 @@
-#ifndef __ENVIRONMENT_H__
-#define __ENVIRONMENT_H__
-
-#include <unistd.h>
-#include <stdlib.h>
-#include "src/util.h"
-
-struct environment {
-  pid_t pid_input, pid_output, pid_main;
-  int ev_fd, fnd_fd, led_fd, push_switch_fd,
-      dot_fd, lcd_fd;
-};
+#include "../src/environment.h"
 
 struct environment*
 construct_environment(struct environment* env)
@@ -42,7 +31,7 @@ construct_environment(struct environment* env)
     printf("\ncan't catch SIGINT\n");
 }
 
-struct environment*
+void
 destruct_environment(struct environment* env)
 {
   close(env->ev_fd);
@@ -53,4 +42,4 @@ destruct_environment(struct environment* env)
   close(env->dot_fd);
 }
 
-#endif
+

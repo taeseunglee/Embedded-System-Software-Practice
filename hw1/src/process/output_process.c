@@ -1,4 +1,4 @@
-#include "src/process/process.h"
+#include "./output_process.h"
 
 void output_process(struct environment *env)
 {
@@ -32,7 +32,7 @@ void output_process(struct environment *env)
 
   // TODO: id_type- change type: int -> enum type
   while (!quit) {
-    if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, OUTPUT_SEND, 0)) {
+    if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_OUTPUT, 0)) {
       id_type = rcv_buf.mtext[0];
 
       // TODO: Check "Write Error"

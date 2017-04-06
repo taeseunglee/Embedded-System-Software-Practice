@@ -1,4 +1,4 @@
-#include "./util.h"
+#include "util.h"
 void kill_all_processes(struct environment *env)
 {
   kill(env->pid_input, SIGINT);

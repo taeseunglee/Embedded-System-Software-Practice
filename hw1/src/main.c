@@ -1,31 +1,34 @@
-#include "lib/error_check.h"
-#include "lib/device.h"
-#include "lib/environment.h"
-#include "lib/define.h"
-#include "src/util.h"
+#include "../lib/error_check.h"
+#include "../lib/device.h"
+#include "../lib/define.h"
+#include "./environment.h"
+#include "./util.h"
 
 #include <stdio.h>
-#include "src/process/process.h"
-#include "src/process/main_process.h"
-#include "src/process/output_process.h"
-#include "src/process/input_process.h"
+#include "./process/process.h"
+#include "./process/main_process.h"
+#include "./process/output_process.h"
+#include "./process/input_process.h"
 
-
-void input_process(struct environment *env);
-void output_process(struct environment *env);
 
 unsigned int quit;
 const unsigned int minus_one = -1;
+
+extern unsigned char fpga_number[10][10];
+extern unsigned char fpga_alpha[10];
+extern unsigned char fpga_set_full[10];
+extern unsigned char fpga_set_blank[10];
 
 int main()
 {
   struct environment *env;
   construct_environment(env);
+  printf("Construct Environment\n");
 
   // input process
-  if (!(env.pid_input = fork())) {
+  if (!(env->pid_input = fork())) {
     printf("Start Input process\n");
-    input_process(&env);
+    input_process(env);
     exit(0);
   }
   else if (env->pid_input < 0) {
@@ -36,7 +39,7 @@ int main()
   // output process
   if (!(env->pid_output = fork())) {
     printf("Start Output process\n");
-    output_process(&env);
+    output_process(env);
     exit(0);
   }
   else if (env->pid_output < 0) {
@@ -47,8 +50,9 @@ int main()
 
   // main process
   printf("Start Main Process\n");
-  main_process(&env);
+  main_process(env);
 
+  destruct_environment(env);
   printf("Main Process exit\n");
   return 0;
 }

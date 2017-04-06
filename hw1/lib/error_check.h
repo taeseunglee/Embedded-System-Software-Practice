@@ -1,7 +1,7 @@
 #ifndef __ERROR_CHECK_H__
 #define __ERROR_CHECK_H__
 
-#include "util.h"
+#include "../src/util.h"
 
 #define DETECT_WRITE_ERROR(ret_bytes, bytes, env) \
  if(ret_bytes != bytes) { \
@@ -19,7 +19,7 @@
 #define DETECT_DEVICE_ERROR(dev_fd, DEVICE) \
  if (dev_fd < 0) { \
    printf("Device open error : %s\n", DEVICE); \
-   return -1; \
+   exit(1); \
  }
 
 #endif

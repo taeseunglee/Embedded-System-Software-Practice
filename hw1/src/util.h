@@ -1,8 +1,8 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
-#include "environment.h"
-#include "define.h"
+#include "../src/environment.h"
+#include "../lib/define.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
@@ -25,7 +25,7 @@
     if (msgsnd(msqid, &snd_buf, msgsz, IPC_NOWAIT) < 0) { \
       printf("device num: %d, errno: %d, type: %d, msgsz: %zu\n", device, errno, type, msgsz); \
       perror("msgsnd"); \
-      kill_all_processes(&env); \
+      kill_all_processes(env); \
     } \
   } while(0);
 

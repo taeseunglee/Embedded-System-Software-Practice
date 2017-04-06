@@ -1,4 +1,4 @@
-#include "src/process/process.h"
+#include "./input_process.h"
 
 void input_process(struct environment *env)
 {
@@ -17,7 +17,6 @@ void input_process(struct environment *env)
   key_t key;
   message_buf mbuf;
   unsigned char before_switch[MAX_BUTTON] = {0,};
-  int press_find = FALSE, i;
 
 
   memset(mbuf.mtext, 0, sizeof(mbuf.mtext));
