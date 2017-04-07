@@ -1,4 +1,4 @@
-BUILD_DIR = $(SRC_DIR)/build
+BUILD_DIR = $(SRC_DIR)/../build
 OBJS_DIR = $(BUILD_DIR)/objs
 LIB_DIR = $(SRC_DIR)/../lib
 

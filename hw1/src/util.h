@@ -33,6 +33,7 @@ struct cursor{
   int x, y;
 };
 
+// used as a pthread and led_filcker function argument
 struct argu_led_flick {
   int *led_flick;
   unsigned int *cur_led;
@@ -40,6 +41,7 @@ struct argu_led_flick {
   struct environment *env;
 };
 
+// used as a pthread and print_cursor function argument
 struct argu_mode_cursor {
   unsigned int *mode, *cursor_hide;
   struct cursor* cursor;

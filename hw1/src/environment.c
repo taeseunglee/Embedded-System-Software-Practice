@@ -30,9 +30,12 @@ construct_environment(struct environment** env)
   printf("Construct Environment\n");
 }
 
+
+// called this function when output process would be die
 void
 destruct_environment(struct environment* env)
 {
+  // TODO: Use return value of close -> error check
   close(env->ev_fd);
   close(env->push_switch_fd);
   close(env->fnd_fd);
@@ -40,7 +43,7 @@ destruct_environment(struct environment* env)
   close(env->lcd_fd);
   close(env->dot_fd);
 
-  // free(env);
+  // TODO: free(env);
   // env = NULL
 
   printf("Destruct Envrionment\n");

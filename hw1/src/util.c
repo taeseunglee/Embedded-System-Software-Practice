@@ -6,7 +6,9 @@ void kill_all_processes(struct environment *env)
   kill(env->pid_main, SIGINT);
 }
 /* TODO: move led_flicker and print_cursor to src/process/main_process.c */
-/* For mode1 */
+/* In mode1, this is called main process by pthread.
+ * LEDs come out alternately every second.
+ */
 void* led_flicker(void *arguments)
 {
   struct argu_led_flick* argu = arguments;
@@ -42,6 +44,7 @@ void* led_flicker(void *arguments)
 
 
 /* For mode4 */
+/* print cursor at DOT device */
 void* print_cursor(void *arguments)
 {
   struct argu_mode_cursor *argu = arguments;
