@@ -76,6 +76,7 @@ void output_process(struct environment *env)
       }
     }
   }
+  device_clear(env);
 
   printf("Output Process exit\n");
 }

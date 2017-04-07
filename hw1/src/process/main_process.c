@@ -129,11 +129,13 @@ int main_process(struct environment *env) {
           {
             ++ mode; mode %= NUM_MODE;
             need_init = TRUE;
+            mode_change_time = 0; // TODO: same feature with led flick
           } break;
       case VOL_M:
           {
             mode += NUM_MODE-1; mode %= NUM_MODE;
             need_init = TRUE;
+            mode_change_time = 0; // TODO: same feature with led flick
           } break;
       }
       printf("Current Mode: %d\n", mode);
@@ -174,6 +176,10 @@ int main_process(struct environment *env) {
               if (time_second/60) {
                 cur_min += time_second/60;
                 time_second %= 60;
+
+                snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
+                snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
+
                 MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
               }
             }
@@ -190,7 +196,7 @@ int main_process(struct environment *env) {
               }
               if (!mode_change_time) {
                 cur_led = 128;
-                usleep(250000);
+                usleep(450000);
                 snd_buf.mtype = 1;
                 // TODO: Use macro
                 snd_buf.mtext[0] = ID_LED;
@@ -285,6 +291,8 @@ int main_process(struct environment *env) {
               else snd_buf.mtext[1] = 0;
             }
             MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            count %= 10000;
           }
         } break; // End of Mode 2
 
@@ -379,6 +387,8 @@ int main_process(struct environment *env) {
 
             memcpy(snd_buf.mtext+1, text, MAX_TEXT);
             MSG_SND(ID_LCD, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            count %= 10000;
           }
         } break; // End of Mode 3
 
@@ -468,6 +478,8 @@ int main_process(struct environment *env) {
             snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
             MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
             memcpy(snd_buf.mtext+1, mask, size_mask);
+
+            count %= 10000;
           }
         } break; // End of Mode 4
 
@@ -505,8 +517,6 @@ int main_process(struct environment *env) {
             snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
             MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
           }
-
-
         } break;
 
 
@@ -518,8 +528,6 @@ int main_process(struct environment *env) {
         }
     }
   }
-
-  MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
   int status;
   pid_t pid;

@@ -20,7 +20,7 @@ void* led_flicker(void *arguments)
 
   while (*led_flick && !quit) {
     *cur_led = 32;
-    led_data = 32 | (*cur_led); write(led_fd, &led_data, 1);
+    led_data = 32 | (*time_second); write(led_fd, &led_data, 1);
     i = 4;
     do { 
       usleep(245000);
@@ -28,14 +28,14 @@ void* led_flicker(void *arguments)
     } while(--i);
 
     *cur_led = 16;
-    led_data = 16 | (*cur_led); write(led_fd, &led_data, 1);
+    led_data = 16 | (*time_second); write(led_fd, &led_data, 1);
     i = 4;
     do { 
       usleep(245000);
       if (quit || !(*led_flick)) break;
     } while(--i);
   }
-  led_data = 128 | (*cur_led); write(led_fd, &led_data, 1);
+  led_data = 128 | (*time_second); write(led_fd, &led_data, 1);
 
   pthread_exit(NULL);
 }
