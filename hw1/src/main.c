@@ -5,6 +5,7 @@
 #include "./util.h"
 
 #include <stdio.h>
+#include <unistd.h>
 #include "./process/process.h"
 #include "./process/main_process.h"
 #include "./process/output_process.h"
@@ -22,8 +23,7 @@ extern unsigned char fpga_set_blank[10];
 int main()
 {
   struct environment *env;
-  construct_environment(env);
-  printf("Construct Environment\n");
+  construct_environment(&env);
 
   // input process
   if (!(env->pid_input = fork())) {

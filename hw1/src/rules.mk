@@ -12,6 +12,7 @@ C_FLAGS= -pthread --static
 
 .PHONY: clean
 clean:
+	@echo "Cleaned."
 	@rm -rf $(BUILD_DIR) $(SRC_DIR)/../$(MAIN_PROG)
 
 $(addsuffix .o, $(TARGET)): %.o: %.c %.h .mkdir.o

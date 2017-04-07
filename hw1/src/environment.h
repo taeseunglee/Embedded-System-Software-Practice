@@ -19,7 +19,7 @@ struct environment {
 };
 
 struct environment*
-construct_environment(struct environment* env);
+construct_environment(struct environment** env);
 
 void
 destruct_environment(struct environment* env);
