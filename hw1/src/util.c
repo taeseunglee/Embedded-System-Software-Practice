@@ -5,7 +5,7 @@ void kill_all_processes(struct environment *env)
   kill(env->pid_output, SIGINT);
   kill(env->pid_main, SIGINT);
 }
-
+/* TODO: move led_flicker and print_cursor to src/process/main_process.c */
 /* For mode1 */
 void* led_flicker(void *arguments)
 {
@@ -15,23 +15,27 @@ void* led_flicker(void *arguments)
   struct environment *env = argu->env;
   int i = 0;
   int led_fd = env->led_fd;
+  unsigned int *cur_led = argu->cur_led,
+               *time_second = argu->time_second;
 
   while (*led_flick && !quit) {
-    led_data = 32; write(led_fd, &led_data, 1);
+    *cur_led = 32;
+    led_data = 32 | (*cur_led); write(led_fd, &led_data, 1);
     i = 4;
     do { 
       usleep(245000);
       if (quit || !(*led_flick)) break;
     } while(--i);
 
-    led_data = 16; write(led_fd, &led_data, 1);
+    *cur_led = 16;
+    led_data = 16 | (*cur_led); write(led_fd, &led_data, 1);
     i = 4;
     do { 
       usleep(245000);
       if (quit || !(*led_flick)) break;
     } while(--i);
   }
-  led_data = 128; write(led_fd, &led_data, 1);
+  led_data = 128 | (*cur_led); write(led_fd, &led_data, 1);
 
   pthread_exit(NULL);
 }
@@ -45,27 +49,38 @@ void* print_cursor(void *arguments)
   int * mode = argu->mode,
       * cursor_hide = argu->cursor_hide;
   struct cursor* cursor = argu->cursor;
-  unsigned char *mask = argu->mask, res[10];
+  unsigned char *mask = argu->mask, res[10] = {0};
 
   struct environment *env = argu->env;
   int dot_fd = env->dot_fd;
 
-  int size_mask = 10*sizeof(char);
+  unsigned int size_mask = 10*sizeof(char);
+
+  int i = 0;
+
   while ((*mode) == 3 && !quit) {
     if (*cursor_hide) {
       write(dot_fd, mask, size_mask);
     }
     else {
-      memcpy(res, mask, size_mask);
-      res[cursor->y] ^= (0x80>>(cursor->x));
-      write(dot_fd, res, size_mask);
+      i = 4;
+      do {
+        memcpy(res, mask, size_mask);
+        res[cursor->y] ^= (0x80>>(cursor->x));
+        write(dot_fd, res, size_mask);
+        usleep(250000);
+      } while(--i);
     }
-    usleep(1000000);
 
     if ((*mode) != 3 || quit) break;
 
     // hide
-    write(dot_fd, mask, size_mask);
+    i = 4;
+    do {
+        write(dot_fd, res, size_mask);
+        usleep(250000);
+    } while(--i);
+
     usleep(1000000);
   }
   memset(mask, 0, size_mask);

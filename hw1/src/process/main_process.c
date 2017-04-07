@@ -21,11 +21,14 @@ int main_process(struct environment *env) {
 
   /* declare and set variables for All Mode */
   int need_init = TRUE;
-  int mode = 0, mode_minus = NUM_MODE-1; // mode 1~NUM_MODE
-
+  int mode = 0; // mode 1~NUM_MODE
+/* TODO: need REFACTORRRRRRRRRRRRRRRRRRRRRRING below code */
   /* declare and set variables for Mode1 */
+  unsigned int cur_led;
   pthread_t flicker_thread;
   struct argu_led_flick argu_flick;
+
+  argu_flick.cur_led = &cur_led;
   argu_flick.env = env;
   time_t rawtime;
   time(&rawtime);
@@ -92,8 +95,21 @@ int main_process(struct environment *env) {
   const size_t size_mask = 10*sizeof(unsigned char);
   /***************************************/
 
-  /* TODO: Make "Initialize the board" */
 
+  /* declare and set variables for Mode5 */
+  struct {
+    unsigned int mode_time_goes: 1; // for mode 1
+    unsigned int mode_4th_of_base10: 1; // for mode 2, print 4th digit while the base of counter is 10
+  } mode5_flag;
+
+  int time_spent;
+  clock_t begin, end;
+  unsigned int time_second;
+  argu_flick.time_second = &time_second;
+  /***************************************/
+
+
+  /* TODO: split modes */
   /********************/
 
 
@@ -111,18 +127,17 @@ int main_process(struct environment *env) {
           } break;
       case VOL_P: 
           {
-            ++ mode; mode &= 0x03;
+            ++ mode; mode %= NUM_MODE;
             need_init = TRUE;
           } break;
       case VOL_M:
           {
-            mode += mode_minus; mode &= 0x03;
+            mode += NUM_MODE-1; mode %= NUM_MODE;
             need_init = TRUE;
           } break;
       }
       printf("Current Mode: %d\n", mode);
     }
-
 
     switch(mode) {
     case 0:
@@ -135,13 +150,35 @@ int main_process(struct environment *env) {
             argu_flick.led_flick = &mode_change_time;
 
             // set led D1
-            snd_buf.mtext[1] = 128;
+            snd_buf.mtext[1] = cur_led = 128;
             MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
+            cur_hour %= 24;
             snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
             snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
             MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
           }
+
+          // 
+          if (mode5_flag.mode_time_goes) {
+            end = clock();
+            time_spent = (int) (end - begin) / CLOCKS_PER_SEC;
+
+            // 1second goes
+            if (time_spent) {
+              begin = end;
+              ++ time_second;
+
+              snd_buf.mtext[1] = cur_led | time_second;
+              MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              if (time_second/60) {
+                cur_min += time_second/60;
+                time_second %= 60;
+                MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              }
+            }
+          }
+
           // get push_switch
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
             // Modify time in board
@@ -152,10 +189,12 @@ int main_process(struct environment *env) {
                 // TODO: kill all processes or just notice error occurunce.
               }
               if (!mode_change_time) {
-                usleep(350000);
+                cur_led = 128;
+                usleep(250000);
                 snd_buf.mtype = 1;
+                // TODO: Use macro
                 snd_buf.mtext[0] = ID_LED;
-                snd_buf.mtext[1] = 128;
+                snd_buf.mtext[1] = cur_led | time_second;
                 if (msgsnd(msqid, &snd_buf, buf_length, IPC_NOWAIT) < 0) {
                   perror("msgsnd from main");
                   // TODO: stop
@@ -242,7 +281,8 @@ int main_process(struct environment *env) {
               snd_buf.mtext[4] = count%10;
               snd_buf.mtext[3] = (count%100)/10;
               snd_buf.mtext[2] = (count%1000)/100;
-              snd_buf.mtext[1] = 0;
+              if (mode5_flag.mode_4th_of_base10) snd_buf.mtext[1] = count/1000;
+              else snd_buf.mtext[1] = 0;
             }
             MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
           }
@@ -274,10 +314,10 @@ int main_process(struct environment *env) {
           }
 
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, 11, IPC_NOWAIT) != minus_one) {
-// DEBUG            printf("2 buf_length: %zu, sizeof: %zu\n", buf_length, sizeof(message_buf));
             if (rcv_buf.mtext[1] && rcv_buf.mtext[2]) {
               memset(text, 0, sizeof(text));
               idx_text = -1;
+              count += 2;
             }
             else if (rcv_buf.mtext[4] && rcv_buf.mtext[5]) {
               text_mode ^= 1;
@@ -291,11 +331,15 @@ int main_process(struct environment *env) {
                 memcpy(snd_buf.mtext+1, fpga_number[1], 10*sizeof(char));
                 MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
               }
+
+              count += 2;
             }
             else if (rcv_buf.mtext[7] && rcv_buf.mtext[8]) {
               if (idx_text != LIMIT_TEXT) ++ idx_text;
               else SHIFT_TEXT(text);
               text[idx_text] = ' ';
+              
+              count += 2;
             }
             else { // write text into lcd
               i = 8;
@@ -323,10 +367,15 @@ int main_process(struct environment *env) {
 
                     text[idx_text] = i+0x31;
                   }
+                  ++ count;
                   break;
                 }
               } while(i--);
             }
+
+            snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
+            snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
+            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
             memcpy(snd_buf.mtext+1, text, MAX_TEXT);
             MSG_SND(ID_LCD, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
@@ -340,14 +389,21 @@ int main_process(struct environment *env) {
             MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
             need_init = FALSE;
-            memset(snd_buf.mtext+1, 0x00, size_mask);
+
+            snd_buf.mtext[1] = 16; // Set D4 led
+            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+
+            memset(snd_buf.mtext+1, 0, size_mask);
             MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
             argu_cursor.cursor = &cursor;
             argu_cursor.mask = snd_buf.mtext+1;
             argu_cursor.mode = &mode;
             argu_cursor.cursor_hide = &cursor_hide;
             cursor.x = 1, cursor.y = 0;
-            
+
+            count = 0;
             if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0) {
               printf("fail: pthread_create\n");
               return -1;
@@ -355,27 +411,45 @@ int main_process(struct environment *env) {
           }
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
             /* Move the cursor */
-            if(rcv_buf.mtext[1] && cursor.y)        -- cursor.y;
-            if(rcv_buf.mtext[3] && cursor.x > 1)    -- cursor.x;
-            if(rcv_buf.mtext[5] && !(cursor.x > 7)) ++ cursor.x;
-            if(rcv_buf.mtext[7] && !(cursor.y > 9)) ++ cursor.y;
+            if(rcv_buf.mtext[1]) {
+              if (cursor.y) -- cursor.y;
+              ++ count;
+            }
+            if(rcv_buf.mtext[3]) {
+              if (cursor.x > 1) -- cursor.x;
+              ++ count;
+            }
+            if(rcv_buf.mtext[5]) {
+              if (!(cursor.x > 7)) ++ cursor.x;
+              ++ count;
+            }
+            if(rcv_buf.mtext[7]) {
+              if (!(cursor.y > 9)) ++ cursor.y;
+              ++ count;
+            }
 
             /* Modify the board setting */
             if (rcv_buf.mtext[0]) {
               cursor.x = 1, cursor.y = 0;
-              memset(snd_buf.mtext + 1, 0x00, sizeof(mask));
+              memset(snd_buf.mtext+1, 0x00, sizeof(mask));
+
+              ++ count;
               MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
             }
             if (rcv_buf.mtext[2]) {
               cursor_hide ^= 1;
+              ++ count;
             }
+            // TODO: 0x80 --> 0x40 && init cursor.x = 1 --> cursor.x = 0;
             if (rcv_buf.mtext[4]) {
               // select and toggle the point
               snd_buf.mtext[cursor.y+1] ^= (0x80 >> cursor.x);
+              ++ count;
               MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
             }
             if (rcv_buf.mtext[6]) {
               memset(snd_buf.mtext+1, 0x00, sizeof(mask));
+              ++ count;
               MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
             }
             if (rcv_buf.mtext[8]) {
@@ -384,10 +458,56 @@ int main_process(struct environment *env) {
               do {
                 snd_buf.mtext[i] ^= 0xFF;
               } while(--i);
+              ++ count;
               MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
             }
+
+// TODO: Use mask!! --> change "Use directly snd_buf.mtext" to "Use mask as a field and copy this to mtext"
+            memcpy(mask, snd_buf.mtext+1, size_mask);
+            snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
+            snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
+            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            memcpy(snd_buf.mtext+1, mask, size_mask);
           }
         } break; // End of Mode 4
+
+    case 4:
+        {
+          if (need_init) {
+            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            need_init = FALSE;
+
+            snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
+            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            count = 0;
+          }
+
+          if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
+            mode5_flag.mode_time_goes;
+            if (rcv_buf.mtext[0]) {
+              mode5_flag.mode_time_goes ^= 1;
+              begin = clock();
+              time_second = 0;
+              ++ count;
+            }
+            if (rcv_buf.mtext[1]) {
+              mode5_flag.mode_4th_of_base10 ^= 1;
+              ++ count;
+            }
+
+// TODO: Using #define, #undefine, and ##(concatenate) in #define, refactoring below code.
+
+            snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
+            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
+            snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
+            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+          }
+
+
+        } break;
 
 
     default:
@@ -398,6 +518,8 @@ int main_process(struct environment *env) {
         }
     }
   }
+
+  MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
   int status;
   pid_t pid;

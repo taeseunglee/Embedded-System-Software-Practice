@@ -49,7 +49,7 @@ void input_process(struct environment *env)
       }
     }
 
-    usleep(200000);
+    usleep(100000);
 
     read(push_switch_fd, &(mbuf.mtext), sw_buff_size);
 

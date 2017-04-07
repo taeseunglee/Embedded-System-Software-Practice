@@ -35,6 +35,8 @@ struct cursor{
 
 struct argu_led_flick {
   int *led_flick;
+  unsigned int *cur_led;
+  unsigned int *time_second;
   struct environment *env;
 };
 
