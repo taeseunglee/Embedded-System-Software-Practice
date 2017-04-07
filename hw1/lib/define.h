@@ -10,7 +10,7 @@
 #define LIMIT_TEXT 7  // MAX_TEXT-1
 
 /* # of modes */
-#define NUM_MODE 4
+#define NUM_MODE 5
 
 #define MAX_MSGSZ 64 // TODO: change -> to sizeof(message_buf);
 #define BUFF_SIZE 20 // buffer of message text
