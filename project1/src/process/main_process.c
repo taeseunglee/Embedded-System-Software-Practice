@@ -123,6 +123,8 @@ int main_process(struct environment *env) {
   /* TODO: split modes */
   /********************/
 
+#define SET_OUT_BUF(device)\
+  snd_buf.mtype = MTYPE_OUTPUT; snd_buf.mtext[0] = device;
 
   while (!quit) {
     // event handling
@@ -130,56 +132,54 @@ int main_process(struct environment *env) {
       {
         unsigned int code = rcv_buf.mtext[0];
 
-        switch (code) {
-        case BACK:
-            {
-              kill(env->pid_input, SIGINT);
-              kill(env->pid_output, SIGINT);
-              kill(getpid(), SIGINT);
-            } break;
-        case VOL_P: 
-            {
-              ++ mode; mode %= NUM_MODE;
-              need_init = TRUE;
-              mode_change_time = 0; // TODO: same feature with led flick
-            } break;
-        case VOL_M:
-            {
-              mode += NUM_MODE-1; mode %= NUM_MODE;
-              need_init = TRUE;
-              mode_change_time = 0; // TODO: same feature with led flick
-            } break;
-        }
+        switch (code) 
+          {
+          case BACK:
+              {
+                kill(env->pid_input, SIGINT);
+                kill(env->pid_output, SIGINT);
+                kill(getpid(), SIGINT);
+              } break;
+          case VOL_P: 
+              {
+                ++ mode; mode %= NUM_MODE;
+                need_init = TRUE;
+                mode_change_time = 0; // TODO: same feature with led flick
+              } break;
+          case VOL_M:
+              {
+                mode += NUM_MODE-1; mode %= NUM_MODE;
+                need_init = TRUE;
+                mode_change_time = 0; // TODO: same feature with led flick
+              } break;
+          }
         printf("Current Mode: %d\n", mode);
       }
+
 
     switch(mode) {
     case 0:
         {
           if (need_init)
             {
-              snd_buf.mtype = MTYPE_OUTPUT;
-              snd_buf.mtext[0] = DEVICE_CLEAR;
+              SET_OUT_BUF(DEVICE_CLEAR);
               MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
               need_init = FALSE;
               mode_change_time = 0; // TODO: same feature with led flick
 
               // set led D1
-              snd_buf.mtype = MTYPE_OUTPUT;
-              snd_buf.mtext[0] = ID_LED;
               snd_buf.mtext[1] = cur_led = 128;
+              SET_OUT_BUF(ID_LED);
               MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
               cur_hour %= 24;
-              snd_buf.mtype = MTYPE_OUTPUT;
-              snd_buf.mtext[0] = ID_FND;
               snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
               snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
+              SET_OUT_BUF(ID_FND);
               MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
 
-          // 
           if (mode5_flag.mode_time_goes)
             {
               end = clock();
@@ -191,7 +191,8 @@ int main_process(struct environment *env) {
                 ++ time_second;
 
                 snd_buf.mtext[1] = cur_led | time_second;
-                MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                SET_OUT_BUF(ID_LED);
+                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
                 if (time_second/60)
                   {
                     cur_min += time_second/60;
@@ -200,7 +201,8 @@ int main_process(struct environment *env) {
                     snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
                     snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
 
-                    MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                    SET_OUT_BUF(ID_FND);
+                    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
                   }
               }
             }
@@ -217,28 +219,20 @@ int main_process(struct environment *env) {
               if (!mode_change_time) {
                 cur_led = 128;
                 usleep(450000);
-                snd_buf.mtype = 1;
                 // TODO: Use macro
-                snd_buf.mtext[0] = ID_LED;
                 snd_buf.mtext[1] = cur_led | time_second;
-                if (msgsnd(msqid, &snd_buf, buf_length, IPC_NOWAIT) < 0) {
-                  perror("msgsnd from main");
-                  // TODO: stop
-                }
+                SET_OUT_BUF(ID_LED);
+                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
               }
             }
             // Reset time in board
-            else if (rcv_buf.mtext[1]) {
-              snd_buf.mtype = 1;
-              memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
-              snd_buf.mtext[0] = ID_FND;
+            else if (rcv_buf.mtext[1])
+              {
+                memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
 
-              if (msgsnd(msqid, &snd_buf, buf_length, IPC_NOWAIT) < 0) {
-                perror("msgsnd from main");
-                // TODO: stop
+                SET_OUT_BUF(ID_FND);
+                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
               }
-
-            }
             if (mode_change_time) {
               // message get
               if (rcv_buf.mtext[2]) ++cur_hour;
@@ -251,15 +245,10 @@ int main_process(struct environment *env) {
               cur_hour %= 24;
 
               // send fnd data
-              snd_buf.mtype = 1;
-              snd_buf.mtext[0] = ID_FND;
               snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
               snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
-
-              if (msgsnd(msqid, &snd_buf, buf_length, IPC_NOWAIT) < 0) {
-                perror("msgsnd from main");
-                // TODO: stop
-              } 
+              SET_OUT_BUF(ID_FND);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
           }
           //          memset(rcv_buf.mtext, 0, 20);
@@ -268,17 +257,22 @@ int main_process(struct environment *env) {
 
     case 1:
         {
-          if (need_init) {
-            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+          if (need_init)
+            {
+              SET_OUT_BUF(DEVICE_CLEAR);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            need_init = FALSE;
-            idx_base = 0, count = 0;
+              need_init = FALSE;
+              idx_base = 0, count = 0;
 
-            snd_buf.mtext[1] = led_num[0];
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-            memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-          }
+              snd_buf.mtext[1] = led_num[0];
+              SET_OUT_BUF(ID_LED);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
+              memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
+              SET_OUT_BUF(ID_FND);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+            }
 
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
             if (rcv_buf.mtext[0]) {
@@ -287,7 +281,8 @@ int main_process(struct environment *env) {
               idx_base &= 0x03;
 
               snd_buf.mtext[1] = led_num[idx_base];
-              MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              SET_OUT_BUF(ID_LED);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
             else if (rcv_buf.mtext[1]) /* Increase the second number */
               count += num_up[idx_base][0];
@@ -310,7 +305,9 @@ int main_process(struct environment *env) {
               if (mode5_flag.mode_4th_of_base10) snd_buf.mtext[1] = count/1000;
               else snd_buf.mtext[1] = 0;
             }
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            SET_OUT_BUF(ID_FND);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             count %= 10000;
           }
@@ -319,27 +316,31 @@ int main_process(struct environment *env) {
 
     case 2:
         {
-           if (need_init) {
-            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+          if (need_init)
+            {
+              SET_OUT_BUF(DEVICE_CLEAR);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            need_init = FALSE;
-            text_mode = TRUE;
-            count = 0, idx_text = -1;
+              need_init = FALSE;
+              text_mode = TRUE;
+              count = 0, idx_text = -1;
 
-            snd_buf.mtext[1] = 32; // Set D3 led
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              snd_buf.mtext[1] = 32; // Set D3 led
+              SET_OUT_BUF(ID_LED);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            memset(text, 0, sizeof(text));
-            memcpy(snd_buf.mtext+1, text, MAX_TEXT);
-            MSG_SND(ID_LCD, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              memset(text, 0, sizeof(text));
+              memcpy(snd_buf.mtext+1, text, MAX_TEXT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
+              SET_OUT_BUF(ID_FND);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            memcpy(snd_buf.mtext+1, fpga_alpha, sizeof(fpga_alpha));
-            MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-// DEBUG            printf("buf_length: %zu, sizeof: %zu\n", buf_length, sizeof(message_buf));
-          }
+              memcpy(snd_buf.mtext+1, fpga_alpha, sizeof(fpga_alpha));
+              SET_OUT_BUF(ID_DOT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+            }
 
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, 11, IPC_NOWAIT) != minus_one) {
             if (rcv_buf.mtext[1] && rcv_buf.mtext[2]) {
@@ -353,11 +354,13 @@ int main_process(struct environment *env) {
               int str_size = sizeof(fpga_alpha);
               if (text_mode) {
                 memcpy(snd_buf.mtext+1, fpga_alpha, 10*sizeof(char));
-                MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                SET_OUT_BUF(ID_DOT);
+                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
               }
               else {
                 memcpy(snd_buf.mtext+1, fpga_number[1], 10*sizeof(char));
-                MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                SET_OUT_BUF(ID_DOT);
+                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
               }
 
               count += 2;
@@ -403,10 +406,12 @@ int main_process(struct environment *env) {
 
             snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
             snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_FND);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             memcpy(snd_buf.mtext+1, text, MAX_TEXT);
-            MSG_SND(ID_LCD, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_LCD);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             count %= 10000;
           }
@@ -416,16 +421,18 @@ int main_process(struct environment *env) {
     case 3:
         {
           if (need_init) {
-            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(DEVICE_CLEAR);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             need_init = FALSE;
 
             snd_buf.mtext[1] = 16; // Set D4 led
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-
+            SET_OUT_BUF(ID_LED);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             memset(snd_buf.mtext+1, 0, size_mask);
-            MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_DOT);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             cursor.x = 1, cursor.y = 0;
 
@@ -460,7 +467,8 @@ int main_process(struct environment *env) {
               memset(snd_buf.mtext+1, 0x00, sizeof(mask));
 
               ++ count;
-              MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              SET_OUT_BUF(ID_DOT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
             if (rcv_buf.mtext[2]) {
               cursor_hide ^= 1;
@@ -471,12 +479,14 @@ int main_process(struct environment *env) {
               // select and toggle the point
               snd_buf.mtext[cursor.y+1] ^= (0x80 >> cursor.x);
               ++ count;
-              MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              SET_OUT_BUF(ID_DOT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
             if (rcv_buf.mtext[6]) {
               memset(snd_buf.mtext+1, 0x00, sizeof(mask));
               ++ count;
-              MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              SET_OUT_BUF(ID_DOT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
             if (rcv_buf.mtext[8]) {
               // Invert the board
@@ -485,14 +495,16 @@ int main_process(struct environment *env) {
                 snd_buf.mtext[i] ^= 0xFF;
               } while(--i);
               ++ count;
-              MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              SET_OUT_BUF(ID_DOT);
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             }
 
 // TODO: Use mask!! --> change "Use directly snd_buf.mtext" to "Use mask as a field and copy this to mtext"
             memcpy(mask, snd_buf.mtext+1, size_mask);
             snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
             snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_FND);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
             memcpy(snd_buf.mtext+1, mask, size_mask);
 
             count %= 10000;
@@ -502,17 +514,20 @@ int main_process(struct environment *env) {
     case 4:
         {
           if (need_init) {
-            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(DEVICE_CLEAR);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
             need_init = FALSE;
 
             snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+
+            SET_OUT_BUF(ID_LED);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             count = 0;
           }
 
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
-            mode5_flag.mode_time_goes;
             if (rcv_buf.mtext[0]) {
               mode5_flag.mode_time_goes ^= 1;
               begin = clock();
@@ -527,11 +542,13 @@ int main_process(struct environment *env) {
 // TODO: Using #define, #undefine, and ##(concatenate) in #define, refactoring below code.
 
             snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_LED);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
             snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
             snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+            SET_OUT_BUF(ID_FND);
+            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
           }
         } break;
 
@@ -552,5 +569,8 @@ int main_process(struct environment *env) {
     perror("wait() error");
   if ((pid = waitpid(-1, &status, 0)) == -1)
     perror("wait() error");
+
+  destruct_environment(env);
+
   return 0;
 }
