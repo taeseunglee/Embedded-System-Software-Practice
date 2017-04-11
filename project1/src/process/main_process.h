@@ -1,5 +1,5 @@
 #ifndef __MAIN_PROCESS__
-#define __MAIN_PROCESS_0_
+#define __MAIN_PROCESS__
 
 #include "./process.h"
 
