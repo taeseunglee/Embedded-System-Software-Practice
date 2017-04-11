@@ -1,4 +1,3 @@
-#include "../lib/error_check.h"
 #include "../lib/device.h"
 #include "../lib/define.h"
 #include "./environment.h"

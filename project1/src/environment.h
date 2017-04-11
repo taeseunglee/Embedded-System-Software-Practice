@@ -9,19 +9,23 @@
 
 #include <signal.h>
 #include "../lib/device.h"
-#include "../lib/error_check.h"
-#include "../src/util.h"
 
 struct environment {
   pid_t pid_input, pid_output, pid_main;
-  int ev_fd, fnd_fd, led_fd, push_switch_fd,
-      dot_fd, lcd_fd;
+  int ev_fd, fnd_fd, led_fd,
+      push_switch_fd, dot_fd,
+      lcd_fd;
+  int msg_key;
 };
 
-struct environment*
-construct_environment(struct environment** env);
+// TODO: save quit in env
+extern unsigned int quit;
 
-void
-destruct_environment(struct environment* env);
+
+void construct_environment(struct environment** env);
+void destruct_environment(struct environment* env);
+void kill_all_processes(struct environment *env);
+void quit_signal(int sig);
+
 
 #endif

@@ -1,50 +1,57 @@
 #include "./main_process.h"
 #include "../../lib/fpga_dot_font.h"
 
-extern const unsigned int minus_one;
+static const unsigned int minus_one = -1;
 
 int main_process(struct environment *env) {
-  // main process
   int msqid, msgflg = IPC_CREAT | 0666;
-  key_t key;
   message_buf rcv_buf, snd_buf;
   const size_t buf_length = sizeof(message_buf);
 
-
-  key = 1234;
-  if ((msqid = msgget(key, msgflg)) < 0) {
-    perror("msgget");
-    exit(1);
-  }
-
+  if ((msqid = msgget(env->msg_key, msgflg)) < 0)
+    {
+      perror("msgget");
+      exit(1);
+    }
 
 
-  /* declare and set variables for All Mode */
-  int need_init = TRUE;
-  int mode = 0; // mode 1~NUM_MODE
-/* TODO: need REFACTORRRRRRRRRRRRRRRRRRRRRRING below code */
-  /* declare and set variables for Mode1 */
-  unsigned int cur_led;
-  pthread_t flicker_thread;
-  struct argu_led_flick argu_flick;
-
-  argu_flick.cur_led = &cur_led;
-  argu_flick.env = env;
+  /* time setting */
   time_t rawtime;
   time(&rawtime);
   struct tm *timeinfo = localtime (&rawtime);
   unsigned int cur_hour, cur_min;
 
+  if (!timeinfo)
+    {
+      printf("Localtime Error\n");
+      // TODO: kill all processes
+    }
+  else
+    {
+      cur_hour = timeinfo->tm_hour;
+      cur_min = timeinfo->tm_min;
+    }
+
+
+  /* declare and set variables for overall Mode */
+  int need_init = TRUE;
+  unsigned int mode = 0; // mode 1~NUM_MODE
+  /* declare and set variables for Mode1 */
+  unsigned int cur_led;
+  pthread_t flicker_thread;
+
+  int time_spent;
+  clock_t begin, end;
+  unsigned int time_second;
+
   int mode_change_time = 0;
 
-  if (!timeinfo) {
-    printf("Localtime Error\n");
-    // TODO: kill all processes
-  }
-  else {
-    cur_hour = timeinfo->tm_hour;
-    cur_min = timeinfo->tm_min;
-  }
+  struct argu_led_flick argu_flick = {
+      .led_flick = &mode_change_time,
+      .cur_led = &cur_led,
+      .time_second = &time_second,
+      .env = env,
+  };
   /**********************************************/
 
   /* declare and set variables for Mode2 */
@@ -52,60 +59,64 @@ int main_process(struct environment *env) {
 
   /* base 10, do not use
      digit array. */
-  const unsigned int led_num[] = {64, 32, 16, 128},
-        digit[4][4] = {
-            {},
-            {0xFFF, 0x1FF, 0x3F, 0x07},
-            {0xFF, 0x3F, 0x0F, 0x03},
-            {0x0F, 0x07, 0x03, 0x01}
-        },
-               num_up[4][2] = {
-                   {100, 10}, {64, 8},
-                   {16, 4}, {4, 2}
-               },
-               base[] = {10, 8, 4, 2},
-               base_shift[3][4] = {
-                   { 0, 3, 2, 1 },
-                   { 0, 6, 4, 2 },
-                   { 0, 9, 6, 3 }
-               };
-
+  const unsigned int
+    led_num[] = { 64, 32, 16, 128 },
+    digit[4][4] = 
+      {
+        [1] = {0xFFF, 0x1FF, 0x3F, 0x07},
+        [2] = {0xFF, 0x3F, 0x0F, 0x03},
+        [3] = {0x0F, 0x07, 0x03, 0x01}
+      },
+    num_up[4][2] = 
+      {
+        {100, 10}, {64, 8},
+        {16, 4}, {4, 2}
+      },
+    base[] = {10, 8, 4, 2},
+    base_shift[3][4] = 
+      {
+        { 0, 3, 2, 1 },
+        { 0, 6, 4, 2 },
+        { 0, 9, 6, 3 }
+      };
   /***************************************/
 
   /* declare and set variables for Mode3 */
   unsigned char text[MAX_TEXT], idx_text = -1;
   unsigned int text_mode = 1, i;
   // character
-  const unsigned char	
-	map_char[9][3] = {
-		  {'.','Q','Z'}, {'A','B','C'}, {'D','E','F'},
-		  {'G','H','I'}, {'J','K','L'}, {'M','N','O'},
-		  {'P','R','S'}, {'T','U','V'}, {'W','X','Y'}
-	  };
+  const unsigned char map_char[9][3] =
+    {
+        [0] = {'.','Q','Z'}, [1] = {'A','B','C'},
+        [2] = {'D','E','F'}, [3] = {'G','H','I'},
+        [4] = {'J','K','L'}, [5] = {'M','N','O'},
+	[6] = {'P','R','S'}, [7] = {'T','U','V'},
+        [8] = {'W','X','Y'}
+    };
   int prior_pressed, times;
   /***************************************/
 
   /* declare and set variables for Mode4 */
   struct cursor cursor;
-  struct argu_mode_cursor argu_cursor;
-  argu_cursor.env = env;
   pthread_t cursor_thread;
   unsigned int cursor_hide = 0;
   unsigned char mask[10] = {0};
   const size_t size_mask = 10*sizeof(unsigned char);
+  struct argu_mode_cursor argu_cursor =
+    {
+      .cursor = &cursor,
+      .mask = snd_buf.mtext+1,
+      .mode = &mode,
+      .cursor_hide = &cursor_hide,
+      .env = env
+    };
   /***************************************/
-
 
   /* declare and set variables for Mode5 */
   struct {
     unsigned int mode_time_goes: 1; // for mode 1
     unsigned int mode_4th_of_base10: 1; // for mode 2, print 4th digit while the base of counter is 10
   } mode5_flag;
-
-  int time_spent;
-  clock_t begin, end;
-  unsigned int time_second;
-  argu_flick.time_second = &time_second;
   /***************************************/
 
 
@@ -115,75 +126,84 @@ int main_process(struct environment *env) {
 
   while (!quit) {
     // event handling
-    if (msgrcv(msqid, &rcv_buf, buf_length, MTYPE_READKEY, IPC_NOWAIT) != minus_one) {
-      unsigned int code = rcv_buf.mtext[0];
+    if (msgrcv(msqid, &rcv_buf, buf_length, MTYPE_READKEY, IPC_NOWAIT) != minus_one)
+      {
+        unsigned int code = rcv_buf.mtext[0];
 
-      switch (code) {
-      case BACK:
-          {
-            kill(env->pid_input, SIGINT);
-            kill(env->pid_output, SIGINT);
-            kill(getpid(), SIGINT);
-          } break;
-      case VOL_P: 
-          {
-            ++ mode; mode %= NUM_MODE;
-            need_init = TRUE;
-            mode_change_time = 0; // TODO: same feature with led flick
-          } break;
-      case VOL_M:
-          {
-            mode += NUM_MODE-1; mode %= NUM_MODE;
-            need_init = TRUE;
-            mode_change_time = 0; // TODO: same feature with led flick
-          } break;
+        switch (code) {
+        case BACK:
+            {
+              kill(env->pid_input, SIGINT);
+              kill(env->pid_output, SIGINT);
+              kill(getpid(), SIGINT);
+            } break;
+        case VOL_P: 
+            {
+              ++ mode; mode %= NUM_MODE;
+              need_init = TRUE;
+              mode_change_time = 0; // TODO: same feature with led flick
+            } break;
+        case VOL_M:
+            {
+              mode += NUM_MODE-1; mode %= NUM_MODE;
+              need_init = TRUE;
+              mode_change_time = 0; // TODO: same feature with led flick
+            } break;
+        }
+        printf("Current Mode: %d\n", mode);
       }
-      printf("Current Mode: %d\n", mode);
-    }
 
     switch(mode) {
     case 0:
         {
-          if (need_init) {
-            MSG_SND(DEVICE_CLEAR, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+          if (need_init)
+            {
+              snd_buf.mtype = MTYPE_OUTPUT;
+              snd_buf.mtext[0] = DEVICE_CLEAR;
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            need_init = FALSE;
-            mode_change_time = 0; // TODO: same feature with led flick
-            argu_flick.led_flick = &mode_change_time;
+              need_init = FALSE;
+              mode_change_time = 0; // TODO: same feature with led flick
 
-            // set led D1
-            snd_buf.mtext[1] = cur_led = 128;
-            MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+              // set led D1
+              snd_buf.mtype = MTYPE_OUTPUT;
+              snd_buf.mtext[0] = ID_LED;
+              snd_buf.mtext[1] = cur_led = 128;
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-            cur_hour %= 24;
-            snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
-            snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
-            MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-          }
+              cur_hour %= 24;
+              snd_buf.mtype = MTYPE_OUTPUT;
+              snd_buf.mtext[0] = ID_FND;
+              snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
+              snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
+              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+            }
 
           // 
-          if (mode5_flag.mode_time_goes) {
-            end = clock();
-            time_spent = (int) (end - begin) / CLOCKS_PER_SEC;
+          if (mode5_flag.mode_time_goes)
+            {
+              end = clock();
+              time_spent = (int) (end - begin) / CLOCKS_PER_SEC;
 
-            // 1second goes
-            if (time_spent) {
-              begin = end;
-              ++ time_second;
+              // 1second goes
+              if (time_spent) {
+                begin = end;
+                ++ time_second;
 
-              snd_buf.mtext[1] = cur_led | time_second;
-              MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
-              if (time_second/60) {
-                cur_min += time_second/60;
-                time_second %= 60;
+                snd_buf.mtext[1] = cur_led | time_second;
+                MSG_SND(ID_LED, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                if (time_second/60)
+                  {
+                    cur_min += time_second/60;
+                    time_second %= 60;
 
-                snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
-                snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
+                    snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
+                    snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
 
-                MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                    MSG_SND(ID_FND, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
+                  }
               }
             }
-          }
 
           // get push_switch
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
@@ -407,10 +427,6 @@ int main_process(struct environment *env) {
             memset(snd_buf.mtext+1, 0, size_mask);
             MSG_SND(ID_DOT, msqid, snd_buf, buf_length, MTYPE_OUTPUT);
 
-            argu_cursor.cursor = &cursor;
-            argu_cursor.mask = snd_buf.mtext+1;
-            argu_cursor.mode = &mode;
-            argu_cursor.cursor_hide = &cursor_hide;
             cursor.x = 1, cursor.y = 0;
 
             count = 0;

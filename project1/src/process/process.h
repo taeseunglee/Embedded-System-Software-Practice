@@ -1,7 +1,6 @@
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
 
-#include "../../lib/error_check.h"
 #include "../../lib/device.h"
 #include "../../lib/define.h"
 #include "../../src/environment.h"
@@ -20,7 +19,16 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
+#ifdef linux
 #include <linux/input.h>
+#else
+// remove error message when I code in mac
+struct input_event {
+  int ev[1], value, code;
+};
+#endif
+
+
 #include <termios.h>
 #include <signal.h>
 
@@ -38,4 +46,13 @@
 
 // Multi thread
 #include <pthread.h>
+
+
+// usage: MSGSND_OR_DIE(msqid, &snd_buf, msgsz, IPC_NOWAIT);
+#define MSGSND_OR_DIE(...) \
+  if (msgsnd(__VA_ARGS__) < 0) { \
+    perror("msgsnd"); \
+    kill_all_processes(env); \
+  }
+
 #endif

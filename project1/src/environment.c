@@ -1,6 +1,14 @@
 #include "../src/environment.h"
+#include <stdio.h>
+#include <errno.h>
 
-struct environment*
+#define DETECT_DEVICE_ERROR(dev_fd, DEVICE) \
+ if (dev_fd < 0) { \
+   printf("Device open error : %s\n", DEVICE); \
+   exit(1); \
+ }
+
+void
 construct_environment(struct environment** env)
 {
   struct environment *new_env = calloc(1, sizeof(struct environment));
@@ -25,28 +33,49 @@ construct_environment(struct environment** env)
   if (signal(SIGINT, quit_signal) == SIG_ERR)
     printf("\ncan't catch SIGINT\n");
 
+  /* Setting the key of message queue */
+  new_env->msg_key = 1234;
+
   *env = new_env;
 
   printf("Construct Environment\n");
 }
 
 
-// called this function when output process would be die
+// call this function when output process dies
 void
 destruct_environment(struct environment* env)
 {
-  // TODO: Use return value of close -> error check
-  close(env->ev_fd);
-  close(env->push_switch_fd);
-  close(env->fnd_fd);
-  close(env->led_fd);
-  close(env->lcd_fd);
-  close(env->dot_fd);
+#define CLOSE_ERROR_CHECK(fd) \
+  if (close(fd) == -1) { \
+      printf("Errno: %d\n", errno); \
+      perror("close"); \
+  }
 
-  // TODO: free(env);
-  // env = NULL
+  CLOSE_ERROR_CHECK(env->ev_fd);
+  CLOSE_ERROR_CHECK(env->push_switch_fd);
+  CLOSE_ERROR_CHECK(env->fnd_fd);
+  CLOSE_ERROR_CHECK(env->led_fd);
+  CLOSE_ERROR_CHECK(env->lcd_fd);
+  CLOSE_ERROR_CHECK(env->dot_fd);
+
+#undef CLOSE_ERROR_CHECK
+
+  free(env);
 
   printf("Destruct Envrionment\n");
+}
+
+void kill_all_processes(struct environment *env)
+{
+  kill(env->pid_input, SIGINT);
+  kill(env->pid_output, SIGINT);
+  kill(env->pid_main, SIGINT);
+}
+
+void quit_signal(int sig)
+{
+  quit = 1;
 }
 
 
