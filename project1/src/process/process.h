@@ -47,12 +47,6 @@ struct input_event {
 // Multi thread
 #include <pthread.h>
 
-
-// usage: MSGSND_OR_DIE(msqid, &snd_buf, msgsz, IPC_NOWAIT);
-#define MSGSND_OR_DIE(...) \
-  if (msgsnd(__VA_ARGS__) < 0) { \
-    perror("msgsnd"); \
-    kill_all_processes(env); \
-  }
+#include "../message.h"
 
 #endif

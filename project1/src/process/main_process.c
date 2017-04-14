@@ -1,5 +1,6 @@
 #include "./main_process.h"
 #include "../../lib/fpga_dot_font.h"
+#include "../prog/mode_clock.h"
 
 static const unsigned int minus_one = -1;
 
@@ -14,45 +15,13 @@ int main_process(struct environment *env) {
       exit(1);
     }
 
+  mode_clock_global_init(msqid);
 
-  /* time setting */
-  time_t rawtime;
-  time(&rawtime);
-  struct tm *timeinfo = localtime (&rawtime);
-  unsigned int cur_hour, cur_min;
-
-  if (!timeinfo)
-    {
-      printf("Localtime Error\n");
-      // TODO: kill all processes
-    }
-  else
-    {
-      cur_hour = timeinfo->tm_hour;
-      cur_min = timeinfo->tm_min;
-    }
 
 
   /* declare and set variables for overall Mode */
-  int need_init = TRUE;
+  int need_init = TRUE; // TODO: INIT check when after Change
   unsigned int mode = 0; // mode 1~NUM_MODE
-  /* declare and set variables for Mode1 */
-  unsigned int cur_led;
-  pthread_t flicker_thread;
-
-  int time_spent;
-  clock_t begin, end;
-  unsigned int time_second;
-
-  int mode_change_time = 0;
-
-  struct argu_led_flick argu_flick = {
-      .led_flick = &mode_change_time,
-      .cur_led = &cur_led,
-      .time_second = &time_second,
-      .env = env,
-  };
-  /**********************************************/
 
   /* declare and set variables for Mode2 */
   unsigned int idx_base, count;
@@ -113,10 +82,7 @@ int main_process(struct environment *env) {
   /***************************************/
 
   /* declare and set variables for Mode5 */
-  struct {
-    unsigned int mode_time_goes: 1; // for mode 1
-    unsigned int mode_4th_of_base10: 1; // for mode 2, print 4th digit while the base of counter is 10
-  } mode5_flag;
+  struct __mode5_flag *mode5_flag = &env->mode5_flag;
   /***************************************/
 
 
@@ -144,13 +110,13 @@ int main_process(struct environment *env) {
               {
                 ++ mode; mode %= NUM_MODE;
                 need_init = TRUE;
-                mode_change_time = 0; // TODO: same feature with led flick
+//                mode_change_time = 0; // TODO: same feature with led flick
               } break;
           case VOL_M:
               {
                 mode += NUM_MODE-1; mode %= NUM_MODE;
                 need_init = TRUE;
-                mode_change_time = 0; // TODO: same feature with led flick
+ //               mode_change_time = 0; // TODO: same feature with led flick
               } break;
           }
         printf("Current Mode: %d\n", mode);
@@ -158,104 +124,7 @@ int main_process(struct environment *env) {
 
 
     switch(mode) {
-    case 0:
-        {
-          if (need_init)
-            {
-              SET_OUT_BUF(DEVICE_CLEAR);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-              need_init = FALSE;
-              mode_change_time = 0; // TODO: same feature with led flick
-
-              // set led D1
-              snd_buf.mtext[1] = cur_led = 128;
-              SET_OUT_BUF(ID_LED);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-              cur_hour %= 24;
-              snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
-              snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
-              SET_OUT_BUF(ID_FND);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-            }
-
-          if (mode5_flag.mode_time_goes)
-            {
-              end = clock();
-              time_spent = (int) (end - begin) / CLOCKS_PER_SEC;
-
-              // 1second goes
-              if (time_spent) {
-                begin = end;
-                ++ time_second;
-
-                snd_buf.mtext[1] = cur_led | time_second;
-                SET_OUT_BUF(ID_LED);
-                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-                if (time_second/60)
-                  {
-                    cur_min += time_second/60;
-                    time_second %= 60;
-
-                    snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
-                    snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
-
-                    SET_OUT_BUF(ID_FND);
-                    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-                  }
-              }
-            }
-
-          // get push_switch
-          if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
-            // Modify time in board
-            if (rcv_buf.mtext[0]) {
-              mode_change_time ^= 1;
-              if (mode_change_time && (pthread_create(&flicker_thread, NULL, &led_flicker, (void*)&argu_flick) != 0)) {
-                perror("pthread_create");
-                // TODO: kill all processes or just notice error occurunce.
-              }
-              if (!mode_change_time) {
-                cur_led = 128;
-                usleep(450000);
-                // TODO: Use macro
-                snd_buf.mtext[1] = cur_led | time_second;
-                SET_OUT_BUF(ID_LED);
-                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-              }
-            }
-            // Reset time in board
-            else if (rcv_buf.mtext[1])
-              {
-                memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
-
-                SET_OUT_BUF(ID_FND);
-                MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-              }
-            if (mode_change_time) {
-              // message get
-              if (rcv_buf.mtext[2]) ++cur_hour;
-              if (rcv_buf.mtext[3]) ++ cur_min;
-              // Correct time
-              if (cur_min == 60) {
-                cur_min = 0;
-                ++ cur_hour;
-              }
-              cur_hour %= 24;
-
-              // send fnd data
-              snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
-              snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;
-              SET_OUT_BUF(ID_FND);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-            }
-          }
-          //          memset(rcv_buf.mtext, 0, 20);
-        } break; // End of Mode1
-
-
-    case 1:
+     case 1:
         {
           if (need_init)
             {
@@ -302,7 +171,7 @@ int main_process(struct environment *env) {
               snd_buf.mtext[4] = count%10;
               snd_buf.mtext[3] = (count%100)/10;
               snd_buf.mtext[2] = (count%1000)/100;
-              if (mode5_flag.mode_4th_of_base10) snd_buf.mtext[1] = count/1000;
+              if (mode5_flag->mode_4th_of_base10) snd_buf.mtext[1] = count/1000;
               else snd_buf.mtext[1] = 0;
             }
 
@@ -519,7 +388,7 @@ int main_process(struct environment *env) {
 
             need_init = FALSE;
 
-            snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
+            snd_buf.mtext[1] = 8 | (128*mode5_flag->mode_time_goes | 64*mode5_flag->mode_4th_of_base10);
 
             SET_OUT_BUF(ID_LED);
             MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
@@ -529,19 +398,18 @@ int main_process(struct environment *env) {
 
           if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
             if (rcv_buf.mtext[0]) {
-              mode5_flag.mode_time_goes ^= 1;
-              begin = clock();
-              time_second = 0;
+              mode5_flag->mode_time_goes ^= 1;
+              env->begin = clock();
               ++ count;
             }
             if (rcv_buf.mtext[1]) {
-              mode5_flag.mode_4th_of_base10 ^= 1;
+              mode5_flag->mode_4th_of_base10 ^= 1;
               ++ count;
             }
 
 // TODO: Using #define, #undefine, and ##(concatenate) in #define, refactoring below code.
 
-            snd_buf.mtext[1] = 8 | (128*mode5_flag.mode_time_goes | 64*mode5_flag.mode_4th_of_base10);
+            snd_buf.mtext[1] = 8 | (128*mode5_flag->mode_time_goes | 64*mode5_flag->mode_4th_of_base10);
             SET_OUT_BUF(ID_LED);
             MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
