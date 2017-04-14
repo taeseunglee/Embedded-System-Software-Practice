@@ -4,13 +4,14 @@
 /* static global variable */
 static unsigned int cur_hour, cur_min;
 
-/* For message queue */
+/* Variablefor message queue */
 static int msqid;
 static message_buf rcv_buf, snd_buf;
 static const size_t buf_length = sizeof(message_buf);
+static struct environment *env;
+
 static unsigned int cur_led;
 static int led_flick;
-static struct environment *env;
 static unsigned int time_second;
 static struct argu_led_flick argu_flick = {
     .led_flick = &led_flick,
@@ -42,7 +43,6 @@ mode_clock_global_init (struct environment * __env, int __msqid)
       cur_hour = timeinfo->tm_hour;
       cur_min = timeinfo->tm_min;
     }
-  mode_clock_init();
 }
 
 void
@@ -86,6 +86,7 @@ mode_clock(message_buf rcv_buf)
           snd_buf.mtext[1] = cur_led | time_second;
           set_out_buf(snd_buf, ID_LED);
           MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
           if (time_second/60)
             {
               cur_min += time_second/60;

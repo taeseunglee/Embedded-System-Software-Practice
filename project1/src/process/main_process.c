@@ -15,7 +15,7 @@ int main_process(struct environment *env) {
       exit(1);
     }
 
-  mode_clock_global_init(msqid);
+  mode_clock_global_init(env, msqid);
 
 
 
@@ -23,63 +23,8 @@ int main_process(struct environment *env) {
   int need_init = TRUE; // TODO: INIT check when after Change
   unsigned int mode = 0; // mode 1~NUM_MODE
 
-  /* declare and set variables for Mode2 */
-  unsigned int idx_base, count;
 
-  /* base 10, do not use
-     digit array. */
-  const unsigned int
-    led_num[] = { 64, 32, 16, 128 },
-    digit[4][4] = 
-      {
-        [1] = {0xFFF, 0x1FF, 0x3F, 0x07},
-        [2] = {0xFF, 0x3F, 0x0F, 0x03},
-        [3] = {0x0F, 0x07, 0x03, 0x01}
-      },
-    num_up[4][2] = 
-      {
-        {100, 10}, {64, 8},
-        {16, 4}, {4, 2}
-      },
-    base[] = {10, 8, 4, 2},
-    base_shift[3][4] = 
-      {
-        { 0, 3, 2, 1 },
-        { 0, 6, 4, 2 },
-        { 0, 9, 6, 3 }
-      };
-  /***************************************/
 
-  /* declare and set variables for Mode3 */
-  unsigned char text[MAX_TEXT], idx_text = -1;
-  unsigned int text_mode = 1, i;
-  // character
-  const unsigned char map_char[9][3] =
-    {
-        [0] = {'.','Q','Z'}, [1] = {'A','B','C'},
-        [2] = {'D','E','F'}, [3] = {'G','H','I'},
-        [4] = {'J','K','L'}, [5] = {'M','N','O'},
-	[6] = {'P','R','S'}, [7] = {'T','U','V'},
-        [8] = {'W','X','Y'}
-    };
-  int prior_pressed, times;
-  /***************************************/
-
-  /* declare and set variables for Mode4 */
-  struct cursor cursor;
-  pthread_t cursor_thread;
-  unsigned int cursor_hide = 0;
-  unsigned char mask[10] = {0};
-  const size_t size_mask = 10*sizeof(unsigned char);
-  struct argu_mode_cursor argu_cursor =
-    {
-      .cursor = &cursor,
-      .mask = snd_buf.mtext+1,
-      .mode = &mode,
-      .cursor_hide = &cursor_hide,
-      .env = env
-    };
-  /***************************************/
 
   /* declare and set variables for Mode5 */
   struct __mode5_flag *mode5_flag = &env->mode5_flag;
@@ -124,64 +69,6 @@ int main_process(struct environment *env) {
 
 
     switch(mode) {
-     case 1:
-        {
-          if (need_init)
-            {
-              SET_OUT_BUF(DEVICE_CLEAR);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-              need_init = FALSE;
-              idx_base = 0, count = 0;
-
-              snd_buf.mtext[1] = led_num[0];
-              SET_OUT_BUF(ID_LED);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-              memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
-              SET_OUT_BUF(ID_FND);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-            }
-
-          if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_SWITCH, IPC_NOWAIT) != minus_one) {
-            if (rcv_buf.mtext[0]) {
-              // change base
-              ++idx_base;
-              idx_base &= 0x03;
-
-              snd_buf.mtext[1] = led_num[idx_base];
-              SET_OUT_BUF(ID_LED);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-            }
-            else if (rcv_buf.mtext[1]) /* Increase the second number */
-              count += num_up[idx_base][0];
-	        else if (rcv_buf.mtext[2]) /* Increase the third number */
-              count += num_up[idx_base][1];
-    	    else if (rcv_buf.mtext[3]) /* Increase the fourth number */
-              ++count;
-
-            // Update the Count
-            if (idx_base) { // not base-10
-              snd_buf.mtext[4] = (count & digit[idx_base][3]);
-              snd_buf.mtext[3] = (count & digit[idx_base][2])>>base_shift[0][idx_base];
-              snd_buf.mtext[2] = (count & digit[idx_base][1])>>base_shift[1][idx_base];
-              snd_buf.mtext[1] = (count & digit[idx_base][0])>>base_shift[2][idx_base];
-            }
-            else { // base-10
-              snd_buf.mtext[4] = count%10;
-              snd_buf.mtext[3] = (count%100)/10;
-              snd_buf.mtext[2] = (count%1000)/100;
-              if (mode5_flag->mode_4th_of_base10) snd_buf.mtext[1] = count/1000;
-              else snd_buf.mtext[1] = 0;
-            }
-
-            SET_OUT_BUF(ID_FND);
-            MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-            count %= 10000;
-          }
-        } break; // End of Mode 2
-
 
     case 2:
         {
