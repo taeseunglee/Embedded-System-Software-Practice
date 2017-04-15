@@ -14,5 +14,4 @@ mode_text_editor_init(void);
 void
 mode_text_editor(message_buf rcv_buf);
 
-
 #endif /* __MODE_TEXT_EDITOR__ */

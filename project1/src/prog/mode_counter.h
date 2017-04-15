@@ -1,3 +1,6 @@
+#ifndef __MODE_COUNTER__
+#define __MODE_COUNTER__
+
 #include "../message.h"
 #include "../environment.h"
 #include "../process/process.h"
@@ -5,6 +8,7 @@
 void
 mode_clock_global_init (struct environment * __env, int __msqid);
 
-static void mode_counter_board_init(void);
+static void mode_counter_init(void);
 void mode_counter(message_buf rcv_buf);
 
+#endif /* __MODE_COUNTER__ */

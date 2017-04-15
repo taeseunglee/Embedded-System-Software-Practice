@@ -3,6 +3,7 @@
 
 #include "../src/environment.h"
 #include "../lib/define.h"
+#include "../lib/device.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>

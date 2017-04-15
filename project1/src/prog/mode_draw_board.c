@@ -8,10 +8,9 @@ static message_buf snd_buf;
 static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
-/* declare and set variables for Mode4 */
-struct cursor cursor;
-pthread_t cursor_thread;
-unsigned int cursor_hide, count;
+static struct cursor cursor;
+static pthread_t cursor_thread;
+static unsigned int cursor_hide, count;
 static unsigned char mask[10];
 static const size_t size_mask = sizeof(mask);
 static struct argu_mode_cursor argu_cursor =
@@ -20,7 +19,6 @@ static struct argu_mode_cursor argu_cursor =
     .mask = snd_buf.mtext+1,
     .cursor_hide = &cursor_hide,
   };
-/***************************************/
 
 void
 mode_draw_board_global_init(struct environment *__env, int __msqid)
@@ -33,7 +31,7 @@ mode_draw_board_global_init(struct environment *__env, int __msqid)
 }
 
 void
-mode_draw_board_init()
+mode_draw_init()
 {
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
@@ -46,12 +44,11 @@ mode_draw_board_init()
   set_out_buf(snd_buf, ID_DOT);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  cursor.x = 1, cursor.y = 0;
+  cursor.x = 0, cursor.y = 0;
 
   count = 0;
-  if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0) {
+  if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0)
     perror("pthread_create");
-  }
 }
 
 void
@@ -66,13 +63,13 @@ mode_draw_board(message_buf rcv_buf)
     }
   if(rcv_buf.mtext[3])
     {
-      if (cursor.x > 1) 
+      if (cursor.x) 
         -- cursor.x;
       ++ count;
     }
   if(rcv_buf.mtext[5])
     {
-      if (!(cursor.x > 7))
+      if (!(cursor.x > 6))
         ++ cursor.x;
       ++ count;
     }
@@ -86,23 +83,24 @@ mode_draw_board(message_buf rcv_buf)
   /* Modify the board setting */
   if (rcv_buf.mtext[0])
     {
-      cursor.x = 1, cursor.y = 0;
+      cursor.x = 0, cursor.y = 0;
       memset(snd_buf.mtext+1, 0x00, sizeof(mask));
 
       ++ count;
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
     }
+
   if (rcv_buf.mtext[2])
     {
       cursor_hide ^= 1;
       ++ count;
     }
-  // TODO: 0x80 --> 0x40 && init cursor.x = 1 --> cursor.x = 0;
+  
   if (rcv_buf.mtext[4])
     {
       // select and toggle the point
-      snd_buf.mtext[cursor.y+1] ^= (0x80 >> cursor.x);
+      snd_buf.mtext[cursor.y+1] ^= (0x40 >> cursor.x);
       ++ count;
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

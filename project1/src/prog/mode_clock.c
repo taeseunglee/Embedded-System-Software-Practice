@@ -1,4 +1,4 @@
-#include "mode_clock.h"
+#include "./mode_clock.h"
 #include "../process/process.h"
 
 /* static global variable */
@@ -26,7 +26,7 @@ mode_clock_global_init (struct environment * __env, int __msqid)
 {
   msqid = __msqid;
   env   = __env;
-  argu_flick.env = env;
+  argu_flick.env = __env;
 
   /* time setting */
   time_t rawtime;
@@ -35,7 +35,7 @@ mode_clock_global_init (struct environment * __env, int __msqid)
 
   if (!timeinfo)
     {
-      printf("Localtime Error\n");
+      perror("Localtime Error");
       // TODO: kill all processes
     }
   else
@@ -56,6 +56,7 @@ mode_clock_init(void)
   set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
+  // print out the current time at FND
   cur_hour %= 24;
   snd_buf.mtext[1] = cur_hour/10; snd_buf.mtext[2] = cur_hour%10;
   snd_buf.mtext[3] = cur_min/10;  snd_buf.mtext[4] = cur_min%10;

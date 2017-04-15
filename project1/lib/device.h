@@ -28,5 +28,6 @@
 #define VOL_P 115
 #define VOL_M 114
 
+#define MAX_DOT 10
 
 #endif

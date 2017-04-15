@@ -74,7 +74,6 @@ mode_text_editor(message_buf rcv_buf)
     {
       text_mode ^= 1;
 
-      int str_size = sizeof(fpga_alpha);
       if (text_mode) {
         memcpy(snd_buf.mtext+1, fpga_alpha, 10*sizeof(char));
         set_out_buf(snd_buf, ID_DOT);

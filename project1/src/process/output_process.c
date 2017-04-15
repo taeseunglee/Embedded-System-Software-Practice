@@ -2,9 +2,6 @@
 
 void output_process(struct environment *env)
 {
-  struct input_event ev[BUFF_SIZE];
-  size_t ret_bytes;
-
   // get file descriptor from env
   int dot_fd = env->dot_fd,
       led_fd = env->led_fd,
@@ -15,7 +12,6 @@ void output_process(struct environment *env)
   /* setting message queue */
   int msqid, msgflg = IPC_CREAT | 0666;
   message_buf rcv_buf;
-  size_t buf_length = sizeof(rcv_buf.mtext);
 
   if ((msqid = msgget(env->msg_key, msgflg)) < 0) {
     perror("msgget");

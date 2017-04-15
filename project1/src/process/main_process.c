@@ -1,12 +1,11 @@
 #include "./main_process.h"
-#include "../../lib/fpga_dot_font.h"
 #include "../prog/mode_clock.h"
 
 static const unsigned int minus_one = -1;
 
 int main_process(struct environment *env) {
   int msqid, msgflg = IPC_CREAT | 0666;
-  message_buf rcv_buf, snd_buf;
+  message_buf rcv_buf;
   const size_t buf_length = sizeof(message_buf);
 
   if ((msqid = msgget(env->msg_key, msgflg)) < 0)
@@ -17,18 +16,6 @@ int main_process(struct environment *env) {
 
   mode_clock_global_init(env, msqid);
 
-
-  /* declare and set variables for Mode5 */
-  struct __mode5_flag *mode5_flag = &env->mode5_flag;
-  /***************************************/
-
-  unsigned int mode;
-
-  /* TODO: split modes */
-  /********************/
-
-#define SET_OUT_BUF(device)\
-  snd_buf.mtype = MTYPE_OUTPUT; snd_buf.mtext[0] = device;
 
   while (!quit) {
     // event handling
@@ -46,14 +33,14 @@ int main_process(struct environment *env) {
               } break;
           case VOL_P: 
               {
-                ++ mode; mode %= NUM_MODE;
+                ++ env->mode; env->mode %= NUM_MODE;
               } break;
           case VOL_M:
               {
-                mode += NUM_MODE-1; mode %= NUM_MODE;
+                env->mode += NUM_MODE-1; env->mode %= NUM_MODE;
               } break;
           }
-        printf("Current Mode: %d\n", mode);
+        printf("Current Mode: %d\n", env->mode);
       }
 
       /*

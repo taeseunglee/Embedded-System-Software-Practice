@@ -10,21 +10,21 @@ static struct environment *env;
 
 /* base 10, do not use
    digit array. */
-static const unsigned int
-led_num[] = { 64, 32, 16, 128 },
-  digit[4][4] = 
+static const unsigned int led_num[] = { 64, 32, 16, 128 };
+static const unsigned int digit[4][4] = 
 {
   [1] = {0xFFF, 0x1FF, 0x3F, 0x07},
   [2] = {0xFF, 0x3F, 0x0F, 0x03},
   [3] = {0x0F, 0x07, 0x03, 0x01}
-},
-  num_up[4][2] = 
+};
+static const unsigned int num_up[4][2] = 
 {
     {100, 10}, {64, 8},
     {16, 4}, {4, 2}
-},
-  base[] = {10, 8, 4, 2},
-  base_shift[3][4] = 
+};
+/* REMOVE  base[] = {10, 8, 4, 2}, */
+
+static const unsigned int base_shift[3][4] = 
 {
     { 0, 3, 2, 1 },
     { 0, 6, 4, 2 },
@@ -34,16 +34,19 @@ led_num[] = { 64, 32, 16, 128 },
 
 
 void
-mode_clock_global_init (struct environment * __env, int __msqid)
+mode_counter_global_init (struct environment * __env, int __msqid)
 {
   msqid = __msqid;
   env   = __env;
 }
 
 static void
-mode_counter_board_init(void)
+mode_counter_init(void)
 {
   idx_base = 0, count = 0;
+
+  set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
   snd_buf.mtext[1] = led_num[0];
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

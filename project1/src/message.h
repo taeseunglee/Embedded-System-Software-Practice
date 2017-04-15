@@ -1,5 +1,5 @@
-#ifndef __MESSAGE_H__
-#define __MESSAGE_H__
+#ifndef __MESSAGE__
+#define __MESSAGE__
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -34,9 +34,7 @@ typedef struct msgbuf {
     kill_all_processes(env); \
   }
 
-inline void set_out_buf(message_buf snd_buf, int device)
-{
+#define set_out_buf(snd_buf, device)\
   snd_buf.mtype = MTYPE_OUTPUT; snd_buf.mtext[0] = device;
-}
 
-#endif
+#endif /* __MESSAGE__ */

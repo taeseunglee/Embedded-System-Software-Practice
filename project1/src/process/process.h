@@ -1,5 +1,5 @@
-#ifndef __PROCESS_H__
-#define __PROCESS_H__
+#ifndef __PROCESS__
+#define __PROCESS__
 
 #include "../../lib/device.h"
 #include "../../lib/define.h"
@@ -49,4 +49,4 @@ struct input_event {
 
 #include "../message.h"
 
-#endif
+#endif /* __PROCESS__ */
