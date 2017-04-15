@@ -6,7 +6,7 @@ static unsigned int cur_hour, cur_min;
 
 /* Variablefor message queue */
 static int msqid;
-static message_buf rcv_buf, snd_buf;
+static message_buf snd_buf;
 static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 

@@ -25,6 +25,8 @@ struct environment {
       lcd_fd;
   int msg_key;
 
+  unsigned int mode;
+
   /* For Mode5 */
   clock_t begin;
   struct __mode5_flag mode5_flag;
