@@ -12,8 +12,8 @@ static struct environment *env;
 struct cursor cursor;
 pthread_t cursor_thread;
 unsigned int cursor_hide, count;
-unsigned char mask[10] = {0};
-const size_t size_mask = 10*sizeof(unsigned char);
+static unsigned char mask[10];
+static const size_t size_mask = sizeof(mask);
 static struct argu_mode_cursor argu_cursor =
   {
     .cursor = &cursor,
@@ -84,42 +84,47 @@ mode_draw_board(message_buf rcv_buf)
     }
 
   /* Modify the board setting */
-  if (rcv_buf.mtext[0]) {
-    cursor.x = 1, cursor.y = 0;
-    memset(snd_buf.mtext+1, 0x00, sizeof(mask));
+  if (rcv_buf.mtext[0])
+    {
+      cursor.x = 1, cursor.y = 0;
+      memset(snd_buf.mtext+1, 0x00, sizeof(mask));
 
-    ++ count;
-    set_out_buf(snd_buf, ID_DOT);
-    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  }
-  if (rcv_buf.mtext[2]) {
-    cursor_hide ^= 1;
-    ++ count;
-  }
+      ++ count;
+      set_out_buf(snd_buf, ID_DOT);
+      MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+    }
+  if (rcv_buf.mtext[2])
+    {
+      cursor_hide ^= 1;
+      ++ count;
+    }
   // TODO: 0x80 --> 0x40 && init cursor.x = 1 --> cursor.x = 0;
-  if (rcv_buf.mtext[4]) {
-    // select and toggle the point
-    snd_buf.mtext[cursor.y+1] ^= (0x80 >> cursor.x);
-    ++ count;
-    set_out_buf(snd_buf, ID_DOT);
-    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  }
-  if (rcv_buf.mtext[6]) {
-    memset(snd_buf.mtext+1, 0x00, sizeof(mask));
-    ++ count;
-    set_out_buf(snd_buf, ID_DOT);
-    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  }
-  if (rcv_buf.mtext[8]) {
-    // Invert the board
-    int i = 10;
-    do {
-      snd_buf.mtext[i] ^= 0xFF;
-    } while(--i);
-    ++ count;
-    set_out_buf(snd_buf, ID_DOT);
-    MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  }
+  if (rcv_buf.mtext[4])
+    {
+      // select and toggle the point
+      snd_buf.mtext[cursor.y+1] ^= (0x80 >> cursor.x);
+      ++ count;
+      set_out_buf(snd_buf, ID_DOT);
+      MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+    }
+  if (rcv_buf.mtext[6])
+    {
+      memset(snd_buf.mtext+1, 0x00, sizeof(mask));
+      ++ count;
+      set_out_buf(snd_buf, ID_DOT);
+      MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+    }
+  if (rcv_buf.mtext[8])
+    {
+      // Invert the board
+      int i = 10;
+      do {
+        snd_buf.mtext[i] ^= 0xFF;
+      } while(--i);
+      ++ count;
+      set_out_buf(snd_buf, ID_DOT);
+      MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+    }
 
   // TODO: Use mask!! --> change "Use directly snd_buf.mtext" to "Use mask as a field and copy this to mtext"
   memcpy(mask, snd_buf.mtext+1, size_mask);
