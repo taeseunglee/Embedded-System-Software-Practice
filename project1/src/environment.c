@@ -36,6 +36,8 @@ construct_environment(struct environment** env)
   /* Setting the key of message queue */
   new_env->msg_key = 1234;
 
+  new_env->mode = 0;
+
   *env = new_env;
 
   printf("Construct Environment\n");

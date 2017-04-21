@@ -20,7 +20,6 @@ static struct argu_led_flick argu_flick = {
 };
 
 
-/* Functions */
 void
 mode_clock_global_init (struct environment * __env, int __msqid)
 {

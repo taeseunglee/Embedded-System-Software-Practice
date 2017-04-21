@@ -18,7 +18,8 @@ struct __mode5_flag
   } mode5_flag;
 
 
-struct environment {
+struct environment
+{
   pid_t pid_input, pid_output, pid_main;
   int ev_fd, fnd_fd, led_fd,
       push_switch_fd, dot_fd,
