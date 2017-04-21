@@ -40,7 +40,7 @@ mode_counter_global_init (struct environment * __env, int __msqid)
   env   = __env;
 }
 
-static void
+void
 mode_counter_init(void)
 {
   idx_base = 0, count = 0;

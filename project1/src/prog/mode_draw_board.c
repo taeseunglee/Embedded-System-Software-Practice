@@ -31,7 +31,7 @@ mode_draw_board_global_init(struct environment *__env, int __msqid)
 }
 
 void
-mode_draw_init()
+mode_draw_board_init()
 {
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

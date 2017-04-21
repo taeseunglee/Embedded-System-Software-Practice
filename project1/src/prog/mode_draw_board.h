@@ -8,7 +8,7 @@ void
 mode_draw_board_global_init(struct environment *__env, int __msqid);
 
 void
-mode_draw_init();
+mode_draw_board_init();
 
 void
 mode_draw_board(message_buf rcv_buf);
