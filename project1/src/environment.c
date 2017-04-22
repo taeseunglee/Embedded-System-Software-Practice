@@ -8,6 +8,8 @@
    exit(1); \
  }
 
+// construct_environment must be called by main function
+// when program begins
 void
 construct_environment(struct environment** env)
 {
@@ -44,7 +46,8 @@ construct_environment(struct environment** env)
 }
 
 
-// call this function when output process dies
+// destruct_environment must be called by main process
+// when input and output process are terminated
 void
 destruct_environment(struct environment* env)
 {
@@ -79,5 +82,3 @@ void quit_signal(int sig)
 {
   quit = 1;
 }
-
-
