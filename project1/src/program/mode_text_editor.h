@@ -3,7 +3,7 @@
 
 #include "../process/process.h"
 #include "../environment.h"
-#include "../message.h"
+#include <message.h>
 
 void
 mode_text_editor_global_init(struct environment *__env, int __msqid);

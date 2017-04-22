@@ -1,7 +1,7 @@
 #ifndef __MODE_COUNTER__
 #define __MODE_COUNTER__
 
-#include "../message.h"
+#include <message.h>
 #include "../environment.h"
 #include "../process/process.h"
 

@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include "./environment.h"
+#include "../environment.h"
 
 /* # of modes */
 #define NUM_MODE 5

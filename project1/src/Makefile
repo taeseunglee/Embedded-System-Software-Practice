@@ -3,7 +3,7 @@ TARGET = environment
 
 
 build: build.env build.process $(LIB)
-	$(CC) $(C_FLAGS) -c main.c -o $(OBJS_DIR)/main.o
+	$(CC) $(LIB_PATH_FLAGS) $(C_FLAGS) -c main.c -o $(OBJS_DIR)/main.o
 	$(CC) -Wall -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o
 
 build.env: $(addsuffix .o, $(TARGET))

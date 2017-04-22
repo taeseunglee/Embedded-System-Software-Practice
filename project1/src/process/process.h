@@ -1,9 +1,12 @@
 #ifndef __PROCESS__
 #define __PROCESS__
 
+/* files in lib */
 #include "../lib/device.h"
 #include "../lib/define.h"
 #include "../environment.h"
+#include <message.h>
+
 
 #include <stdio.h>
 #include <string.h>
@@ -41,7 +44,6 @@ struct input_event {
 // Multi thread
 #include <pthread.h>
 
-#include "../message.h"
 #include <errno.h>
 
 #endif /* __PROCESS__ */

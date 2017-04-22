@@ -2,7 +2,7 @@
 #define __MODE_DRAW_BOARD__
 
 #include "../environment.h"
-#include "../message.h"
+#include <message.h>
 
 void
 mode_draw_board_global_init(struct environment *__env, int __msqid);

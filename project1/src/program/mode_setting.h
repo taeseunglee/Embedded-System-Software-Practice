@@ -2,7 +2,7 @@
 #define __MODE_SETTING__
 
 #include "../environment.h"
-#include "../message.h"
+#include <message.h>
 
 void
 mode_setting_global_init();
