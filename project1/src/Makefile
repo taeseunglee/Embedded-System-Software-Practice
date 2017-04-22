@@ -14,7 +14,7 @@ build.process: build.program
 
 .PHONY: build.program
 build.program: build.thread
-	make -C $(SRC_DIR)/prog
+	make -C $(SRC_DIR)/program
 
 .PHONY: build.thread
 build.thread:
