@@ -3,6 +3,7 @@
 
 #include "../thread/led_flicker_thread.h"
 #include <message.h>
+#include <environment.h>
 
 void mode_clock_global_init(struct environment *__env, int __msqid);
 void mode_clock_init(void);

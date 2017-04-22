@@ -1,8 +1,3 @@
-#include "./lib/device.h"
-#include "./lib/define.h"
-#include "./environment.h"
-#include "./util.h"
-
 #include <stdio.h>
 #include <unistd.h>
 #include "./process/process.h"
@@ -10,6 +5,9 @@
 #include "./process/output_process.h"
 #include "./process/input_process.h"
 
+#include <environment.h>
+#include <define.h>
+#include <device.h>
 
 unsigned int quit;
 const unsigned int minus_one = -1;

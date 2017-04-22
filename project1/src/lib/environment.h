@@ -6,9 +6,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include <signal.h>
-#include "./lib/device.h"
+
+
+#include <device.h>
 
 
 struct __mode5_flag

@@ -2,9 +2,9 @@
 #define __PROCESS__
 
 /* files in lib */
-#include "../lib/device.h"
-#include "../lib/define.h"
-#include "../environment.h"
+#include <device.h>
+#include <define.h>
+#include <environment.h>
 #include <message.h>
 
 
