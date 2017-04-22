@@ -1,6 +1,6 @@
 BUILD_DIR = $(SRC_DIR)/../build
 OBJS_DIR = $(BUILD_DIR)/objs
-LIB_DIR = $(SRC_DIR)/../lib
+LIB_DIR = $(SRC_DIR)/lib
 
 MAIN_PROG = 20141570
 LIB = $(LIB_DIR)/error_check $(LIB_DIR)/device $(LIB_DIR)/define $(LIB_DIR)/fpga_dot_font

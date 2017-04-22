@@ -1,11 +1,9 @@
 #ifndef __PROCESS__
 #define __PROCESS__
 
-#include "../../lib/device.h"
-#include "../../lib/define.h"
-#include "../../src/environment.h"
-#include "../util.h"
-
+#include "../lib/device.h"
+#include "../lib/define.h"
+#include "../environment.h"
 
 #include <stdio.h>
 #include <string.h>

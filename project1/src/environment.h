@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 #include <signal.h>
-#include "../lib/device.h"
+#include "./lib/device.h"
 
 
 struct __mode5_flag

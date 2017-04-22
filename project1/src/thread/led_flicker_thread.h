@@ -1,5 +1,5 @@
 #include "../environment.h"
-#include "../../lib/define.h"
+#include "../lib/define.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>

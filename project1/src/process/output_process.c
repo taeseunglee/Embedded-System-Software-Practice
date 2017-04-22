@@ -2,9 +2,7 @@
 
 #define WRITE_ERROR_CHECK(fd, rcv_data, wbyte) \
   if (write(fd, rcv_data, wbyte) < 0) \
-    {\
-
-    }
+      perror("write");
 
 void output_process(struct environment *env)
 {

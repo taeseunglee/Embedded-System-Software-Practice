@@ -1,6 +1,6 @@
-#include "../../lib/define.h"
+#include "../lib/define.h"
 #include "./mode_text_editor.h"
-#include "../../lib/fpga_dot_font.h"
+#include "../lib/fpga_dot_font.h"
 
 
 /* Variablefor message queue */
