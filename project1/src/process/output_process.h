@@ -3,12 +3,7 @@
 
 #include "./process.h"
 
-extern unsigned char fpga_number[10][10];
-extern unsigned char fpga_alpha[10];
-extern unsigned char fpga_set_full[10];
-extern unsigned char fpga_set_blank[10];
-
-
 void output_process(struct environment *env);
+void device_clear(struct environment *env);
 
 #endif

@@ -1,30 +1,29 @@
 #include "./output_process.h"
 
+#define WRITE_ERROR_CHECK(fd, rcv_data, wbyte) \
+  if (write(fd, rcv_data, wbyte) < 0) \
+    {\
+
+    }
+
 void output_process(struct environment *env)
 {
   // get file descriptor from env
-  int dot_fd = env->dot_fd,
-      led_fd = env->led_fd,
-      fnd_fd = env->fnd_fd,
-      lcd_fd = env->lcd_fd;
-
-
-  /* setting message queue */
-  int msqid, msgflg = IPC_CREAT | 0666;
-  message_buf rcv_buf;
-
-  if ((msqid = msgget(env->msg_key, msgflg)) < 0) {
-    perror("msgget");
-  }
-
-  /* TODO: need to change structure of receiving msg */
-
-  /* variables for push swtich */
+  int dot_fd = env->dot_fd;
+  int led_fd = env->led_fd;
+  int fnd_fd = env->fnd_fd;
+  int lcd_fd = env->lcd_fd;
 
   int id_type;
   unsigned char rcv_data[20];
 
-  // TODO: id_type- change type: int -> enum type
+  int msqid, msgflg = IPC_CREAT | 0666;
+  message_buf rcv_buf;
+
+  /* setting message queue */
+  if ((msqid = msgget(env->msg_key, msgflg)) < 0)
+    perror("msgget");
+
   while (!quit)
     {
       if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_OUTPUT, 0))
@@ -77,4 +76,14 @@ void output_process(struct environment *env)
 
   printf("Output Process exit\n");
   exit(0);
+}
+
+void device_clear(struct environment *env)
+{
+  static unsigned blank_data[50] = {0,};
+
+  write(env->led_fd, blank_data, 1);
+  write(env->fnd_fd, blank_data, 4);
+  write(env->lcd_fd, blank_data, MAX_TEXT);
+  write(env->dot_fd, blank_data, MAX_DOT);
 }

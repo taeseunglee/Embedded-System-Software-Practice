@@ -6,9 +6,6 @@
 #include "../../src/environment.h"
 #include "../util.h"
 
-// For fpga dot font
-// #include "../../lib/fpga_dot_font.h"
-
 
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +13,6 @@
 #include <unistd.h>
 
 // include headers for get input event
-#include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
 #ifdef linux
@@ -48,5 +44,6 @@ struct input_event {
 #include <pthread.h>
 
 #include "../message.h"
+#include <errno.h>
 
 #endif /* __PROCESS__ */

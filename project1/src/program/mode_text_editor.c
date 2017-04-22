@@ -9,6 +9,12 @@ static message_buf snd_buf;
 static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
+#define SHIFT_TEXT(text) \
+  do { \
+	int t=0; \
+	while (t<LIMIT_TEXT) { text[t] = text[t+1]; t++; } \
+  } while(0);
+
 
 
 /* declare and set variables for Mode3 */

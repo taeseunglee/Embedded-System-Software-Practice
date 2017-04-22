@@ -1,12 +1,12 @@
 SRC_DIR = .
-TARGET = util environment
+TARGET = environment
 
 
-build: build.core build.process $(LIB)
+build: build.env build.process $(LIB)
 	$(CC) $(C_FLAGS) -c main.c -o $(OBJS_DIR)/main.o
 	$(CC) -Wall -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o
 
-build.core: $(addsuffix .o, $(TARGET))
+build.env: $(addsuffix .o, $(TARGET))
 
 .PHONY: build.process
 build.process: build.program
