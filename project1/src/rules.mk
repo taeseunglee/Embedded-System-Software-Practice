@@ -2,7 +2,7 @@ BUILD_DIR = $(SRC_DIR)/../build
 OBJS_DIR = $(BUILD_DIR)/objs
 LIB_DIR = $(SRC_DIR)/lib
 
-MAIN_PROG = 20141570
+MAIN_PROG = main
 
 # CC= arm-none-linux-gnueabi-gcc
 CC= gcc
