@@ -13,7 +13,6 @@
 #define MAX_MSGSZ 64 // TODO: change -> to sizeof(message_buf);
 #define BUFF_SIZE 20 // buffer of message text
 #define MAX_BUTTON 9 // # of Push switch buttons
-#define MAX_DOT   10 // # of charcters for print fpga_dot device
 
 /* message type */
 #define MTYPE_READKEY 10
