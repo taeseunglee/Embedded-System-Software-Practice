@@ -118,9 +118,9 @@ kernel_timer_ioctl(struct file *file,
   char ch;
 
   /* Switch according to the ioctl called */
-  switch (ioctl_num) {
+  switch (ioctl_num)
+    {
     case KTIMER_SET_FND:
-
       break;
 
     case KTIMER_SET_LED:
@@ -131,7 +131,7 @@ kernel_timer_ioctl(struct file *file,
 
     case KTIMER_SET_LCD:
       break;
-  }
+    }
 
   return 0;
 }
