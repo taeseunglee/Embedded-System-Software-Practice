@@ -1,7 +1,7 @@
 obj-m = kernel_timer.o 
 CC := arm-none-linux-gnueabi-gcc
 
-KDIR := /home/lee/Desktop/kernel
+KDIR := /work/achroimx_kernel/
 PWD := $(shell pwd)
 
 driver : 

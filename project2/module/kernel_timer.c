@@ -14,23 +14,26 @@ static int kernel_timer_usage = 0;
 int kernel_timer_open(struct inode *, struct file *);
 int kernel_timer_release(struct inode *, struct file *);
 ssize_t kernel_timer_write(struct file *, const char *, size_t, loff_t *);
-int device_ioctl(struct inode *, struct file *, unsigned int, unsigned long);
+long kernel_timer_ioctl(struct file *, unsigned int, unsigned long);
 
 static struct file_operations kernel_timer_fops =
 {
   .open = kernel_timer_open,
   .write = kernel_timer_write,
   .release = kernel_timer_release,
-  .ioctl = device_ioctl
+  .unlocked_ioctl = kernel_timer_ioctl,
 };
 
-static struct struct_mydata 
+struct struct_mydata 
 {
   struct timer_list timer;
   int count;
+  int pattern;
 };
 
-struct struct_mydata mydata;
+static struct struct_mydata mydata;
+static int interval;
+
 
 int
 kernel_timer_release(struct inode *minode, struct file *mfile)
@@ -80,6 +83,7 @@ kernel_timer_write(struct file *inode, const char *gdata, size_t length, loff_t 
     return -EFAULT;
 
   mydata.count = kernel_timer_buff;
+  /* modify HZ to interval after I set timer interval at interval variable */
 
   printk("data  : %d \n",mydata.count);
 
@@ -104,60 +108,32 @@ kernel_timer_write(struct file *inode, const char *gdata, size_t length, loff_t 
  * is returned to the calling process), the ioctl call 
  * returns the output of this function.
  */
-int
-device_ioctl(struct inode *inode,
-             struct file *file,
-             unsigned int ioctl_num,/* The number of the ioctl */
-             unsigned long ioctl_param) /* The parameter to it */
+long
+kernel_timer_ioctl(struct file *file,
+                   unsigned int ioctl_num,/* The number of the ioctl */
+                   unsigned long ioctl_param) /* The parameter to it */
 {
   int i;
-  char *temp;
+  int temp = (int) ioctl_param;
   char ch;
 
   /* Switch according to the ioctl called */
   switch (ioctl_num) {
-    case IOCTL_SET_MSG:
-      /* Receive a pointer to a message (in user space) 
-       * and set that to be the device's message. */ 
+    case KTIMER_SET_FND:
 
-      /* Get the parameter given to ioctl by the process */
-      temp = (char *) ioctl_param;
-
-      /* Find the length of the message */
-      get_user(ch, temp);
-      for (i=0; ch && i<BUF_LEN; i++, temp++)
-        get_user(ch, temp);
-
-      /* Don't reinvent the wheel - call device_write */
-      device_write(file, (char *) ioctl_param, i, 0);
       break;
 
-    case IOCTL_GET_MSG:
-      /* Give the current message to the calling 
-       * process - the parameter we got is a pointer, 
-       * fill it. */
-      i = device_read(file, (char *) ioctl_param, 99, 0); 
-      /* Warning - we assume here the buffer length is 
-       * 100. If it's less than that we might overflow 
-       * the buffer, causing the process to core dump. 
-       *
-       * The reason we only allow up to 99 characters is 
-       * that the NULL which terminates the string also 
-       * needs room. */
-
-      /* Put a zero at the end of the buffer, so it 
-       * will be properly terminated */
-      put_user('\0', (char *) ioctl_param+i);
+    case KTIMER_SET_LED:
       break;
 
-    case IOCTL_GET_NTH_BYTE:
-      /* This ioctl is both input (ioctl_param) and 
-       * output (the return value of this function) */
-      return Message[ioctl_param];
+    case KTIMER_SET_DOT:
+      break;
+
+    case KTIMER_SET_LCD:
       break;
   }
 
-  return SUCCESS;
+  return 0;
 }
 
 int __init 

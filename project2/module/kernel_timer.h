@@ -14,10 +14,10 @@
 /* _IO, _IOW, _IOR, _IORW are helper macros to create a unique ioctl identifier
 and add the required R/W needed features (direction). */
 /* TODO: device.h를 만들어 MAX_DOT 등을 적는다 */
-#define KTIMER_SET_FND _IOW(KERNEL_TIMER_MAJOR, 4, int)
-#define KTIMER_SET_LED _IOW(KERNEL_TIMER_MAJOR, 1, int)
-#define KTIMER_SET_DOT _IOW(KERNEL_TIMER_MAJOR, 10, int)
-#define KTIMER_SET_LCD _IOW(KERNEL_TIMER_MAJOR, 32, int)
+#define KTIMER_SET_FND _IOR(KERNEL_TIMER_MAJOR, 4, int)
+#define KTIMER_SET_LED _IOR(KERNEL_TIMER_MAJOR, 1, int)
+#define KTIMER_SET_DOT _IOR(KERNEL_TIMER_MAJOR, 10, int)
+#define KTIMER_SET_LCD _IOR(KERNEL_TIMER_MAJOR, 32, int)
 
 
 /* _IOR means that we're creating an ioctl command 
