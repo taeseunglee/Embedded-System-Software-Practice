@@ -8,6 +8,12 @@
 /* ioctl numbers */
 #include "./kernel_timer.h"
 
+#define __POWER_OF_0 1
+#define __POWER_OF_1 10
+#define __POWER_OF_2 100
+#define __POWER_OF_3 1000
+#define POWER_OF(NUM) __POWER_OF_ ## NUM
+
 
 static int kernel_timer_usage = 0;
 
@@ -28,11 +34,16 @@ struct struct_mydata
 {
   struct timer_list timer;
   int count;
-  int pattern;
+  int pat_fnd;
+  int base_fnd;
 };
 
 static struct struct_mydata mydata;
-static int interval;
+static unsigned long t_interval;
+static int dot_fd;
+static int led_fd;
+static int fnd_fd;
+static int lcd_fd;
 
 
 int
@@ -60,11 +71,11 @@ kernel_timer_blink(unsigned long timeout)
 
   printk("kernel_timer_blink %d\n", p_data->count);
 
-  p_data->count++;
+  ++ p_data->count;
   if( p_data->count > 15 )
     return;
 
-  mydata.timer.expires = get_jiffies_64() + (1 * HZ);
+  mydata.timer.expires = get_jiffies_64() + t_interval;
   mydata.timer.data = (unsigned long)&mydata;
   mydata.timer.function = kernel_timer_blink;
 
@@ -72,25 +83,27 @@ kernel_timer_blink(unsigned long timeout)
 }
 
 ssize_t
-kernel_timer_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what)
+kernel_timer_write(struct file *file, const char *gdata, size_t length, loff_t *off_what)
 {
-  const char *tmp = gdata;
-  char kernel_timer_buff = 0;
+  const lonh *tmp = gdata;
+  long kernel_timer_buff = 0;
+  long loc_fnd;
 
-  printk("write\n");
-  // 1 byte
-  if (copy_from_user(&kernel_timer_buff, tmp, 1))
+  if ( copy_from_user(&kernel_timer_buff, tmp, sizeof(long)) )
     return -EFAULT;
 
-  mydata.count = kernel_timer_buff;
   /* modify HZ to interval after I set timer interval at interval variable */
+  mydata.count    = kernel_timer_buff & 0xFF;
+  mydata.pat_fnd  = (kernel_timer_buff & 0xFF0000) >> 16;
+  t_interval  = (unsigned long)((kernel_timer_buff & 0xFF00) >> 8) * HZ / 10;
+  loc_fnd     = (kernel_timer_buff & 0xFF000000) >> 24;
 
-  printk("data  : %d \n",mydata.count);
+  mydata.base_fnd = 1000 / POWER_OF(loc_fnd);
 
   del_timer_sync(&mydata.timer);
 
-  mydata.timer.expires = jiffies + (1 * HZ);
-  mydata.timer.data = (unsigned long)&mydata;
+  mydata.timer.expires  = jiffies_64 + t_interval;
+  mydata.timer.data     = (unsigned long)&mydata;
   mydata.timer.function	= kernel_timer_blink;
 
   add_timer(&mydata.timer);
@@ -108,28 +121,35 @@ kernel_timer_write(struct file *inode, const char *gdata, size_t length, loff_t 
  * is returned to the calling process), the ioctl call 
  * returns the output of this function.
  */
+
+/* ioctl_num : The number of the ioctl */
+/* ioctl_param : The parameter to it */
 long
-kernel_timer_ioctl(struct file *file,
-                   unsigned int ioctl_num,/* The number of the ioctl */
-                   unsigned long ioctl_param) /* The parameter to it */
+kernel_timer_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
   int i;
-  int temp = (int) ioctl_param;
   char ch;
 
   /* Switch according to the ioctl called */
   switch (ioctl_num)
     {
     case KTIMER_SET_FND:
+      fnd_fd = (int) ioctl_param;
       break;
 
     case KTIMER_SET_LED:
+      led_fd = (int) ioctl_param;
       break;
 
     case KTIMER_SET_DOT:
+      dot_fd = (int) ioctl_param;
       break;
 
     case KTIMER_SET_LCD:
+      lcd_fd = (int) ioctl_param;
+      break;
+    case KTIMER_START:
+      kernel_timer_write(file, (char *) ioctl_param, (size_t) 0, (loff_t *) 0);
       break;
     }
 
