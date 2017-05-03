@@ -25,7 +25,6 @@ asmlinkage long sys_pack_timer(long interval, long number, long startup_option)
         {
           init_val_fnd = tmp / bound[i];
           init_loc_fnd = i - 1;
-          printf("hello?\n");
           break;
         }
     }
