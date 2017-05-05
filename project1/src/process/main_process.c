@@ -11,14 +11,10 @@ typedef void (*mode_init_func) (void);
 typedef void (*mode_body_func) (message_buf);
 
 
-static void
-set_mode_global_init(struct environment *env, int msqid);
-static mode_init_func*
-get_mode_init(void);
-static mode_body_func*
-get_mode_body(void);
-int
-main_process(struct environment *env);
+static void set_mode_global_init(struct environment *env, int msqid);
+static mode_init_func* get_mode_init(void);
+static mode_body_func* get_mode_body(void);
+int main_process(struct environment *env);
 
 int
 main_process(struct environment *env)

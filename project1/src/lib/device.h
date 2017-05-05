@@ -28,6 +28,9 @@
 #define VOL_P 115
 #define VOL_M 114
 
-#define MAX_DOT 10
+#define LEN_LED 1
+#define LEN_FND 4
+#define LEN_LCD 32
+#define LEN_DOT 10
 
 #endif

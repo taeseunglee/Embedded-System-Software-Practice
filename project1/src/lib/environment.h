@@ -9,7 +9,7 @@
 #include <signal.h>
 
 
-#include <device.h>
+#include "./device.h"
 
 
 struct __mode5_flag

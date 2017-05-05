@@ -1,8 +1,8 @@
 #ifndef __MODE_SETTING__
 #define __MODE_SETTING__
 
-#include <environment.h>
-#include <message.h>
+#include "../lib/environment.h"
+#include "../lib/message.h"
 
 void mode_setting_global_init();
 void mode_setting_init();

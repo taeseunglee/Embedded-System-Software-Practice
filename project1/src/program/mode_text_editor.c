@@ -10,27 +10,26 @@ static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
 #define SHIFT_TEXT(text) \
-  do { \
-	int t=0; \
-	while (t<LIMIT_TEXT) { text[t] = text[t+1]; t++; } \
+  do \
+  { \
+    int t=0; \
+    while (t<LIMIT_TEXT) { text[t] = text[t+1]; t++; } \
   } while(0);
 
 
 
-/* declare and set variables for Mode3 */
-static unsigned char text[MAX_TEXT];
-static int count = 0, idx_text = -1;
-static unsigned int text_mode = 1, i;
+static unsigned char text[LEN_LCD];
+static int count, idx_text;
+static unsigned int text_mode;
 // character
 const unsigned char map_char[9][3] =
-  {
-      [0] = {'.','Q','Z'}, [1] = {'A','B','C'},
-      [2] = {'D','E','F'}, [3] = {'G','H','I'},
-      [4] = {'J','K','L'}, [5] = {'M','N','O'},
-      [6] = {'P','R','S'}, [7] = {'T','U','V'},
-      [8] = {'W','X','Y'}
-  };
-int prior_pressed, times;
+{
+  [0] = {'.','Q','Z'}, [1] = {'A','B','C'},
+  [2] = {'D','E','F'}, [3] = {'G','H','I'},
+  [4] = {'J','K','L'}, [5] = {'M','N','O'},
+  [6] = {'P','R','S'}, [7] = {'T','U','V'},
+  [8] = {'W','X','Y'}
+};
 /***************************************/
 
 void
@@ -54,15 +53,15 @@ mode_text_editor_init()
   set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  memset(text, 0, sizeof(text));
-  memcpy(snd_buf.mtext+1, text, MAX_TEXT);
+  memset(text, 0, LEN_LCD);
+  memcpy(snd_buf.mtext+1, text, LEN_LCD);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
   memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
   set_out_buf(snd_buf, ID_FND);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  memcpy(snd_buf.mtext+1, fpga_alpha, sizeof(fpga_alpha));
+  memcpy(snd_buf.mtext+1, fpga_alpha, LEN_DOT);
   set_out_buf(snd_buf, ID_DOT);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
@@ -70,6 +69,7 @@ mode_text_editor_init()
 void
 mode_text_editor(message_buf rcv_buf)
 {
+  static int prior_pressed, times;
   if (rcv_buf.mtext[1] && rcv_buf.mtext[2])
     {
       memset(text, 0, sizeof(text));
@@ -80,30 +80,34 @@ mode_text_editor(message_buf rcv_buf)
     {
       text_mode ^= 1;
 
-      if (text_mode) {
-        memcpy(snd_buf.mtext+1, fpga_alpha, 10*sizeof(char));
-        set_out_buf(snd_buf, ID_DOT);
-        MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-      }
-      else {
-        memcpy(snd_buf.mtext+1, fpga_number[1], 10*sizeof(char));
-        set_out_buf(snd_buf, ID_DOT);
-        MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-      }
+      if (text_mode)
+        {
+          memcpy(snd_buf.mtext+1, fpga_alpha, LEN_DOT);
+          set_out_buf(snd_buf, ID_DOT);
+          MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+        }
+      else
+        {
+          memcpy(snd_buf.mtext+1, fpga_number[1], LEN_DOT);
+          set_out_buf(snd_buf, ID_DOT);
+          MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+        }
 
       count += 2;
     }
   else if (rcv_buf.mtext[7] && rcv_buf.mtext[8])
     {
-      if (idx_text != LIMIT_TEXT) ++ idx_text;
-      else SHIFT_TEXT(text);
+      if (idx_text != LIMIT_TEXT)
+        ++ idx_text;
+      else
+        SHIFT_TEXT(text);
       text[idx_text] = ' ';
-      
+
       count += 2;
     }
   else
     { // write text into lcd
-      i = 8;
+      unsigned int i = 8;
       do
         {
           if (!rcv_buf.mtext[i])
@@ -155,7 +159,7 @@ mode_text_editor(message_buf rcv_buf)
   set_out_buf(snd_buf, ID_FND);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  memcpy(snd_buf.mtext+1, text, MAX_TEXT);
+  memcpy(snd_buf.mtext+1, text, LEN_LCD);
   set_out_buf(snd_buf, ID_LCD);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }

@@ -3,7 +3,7 @@ MAIN = main
 
 build: build.lib build.process
 	$(CC) $(LIB_PATH_FLAGS) $(C_FLAGS) -c main.c -o $(OBJS_DIR)/main.o
-	$(CC) -Wall -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o
+	$(CC) -Wall -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o $(PTHREAD_FLAG)
 
 
 .PHONY: build.process
@@ -11,7 +11,7 @@ build.process: build.program build.thread
 	make -C $(SRC_DIR)/process build
 
 .PHONY: build.program
-build.program:
+build.program: build.thread
 	make -C $(SRC_DIR)/program
 
 .PHONY: build.thread

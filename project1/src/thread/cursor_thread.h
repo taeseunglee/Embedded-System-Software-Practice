@@ -1,5 +1,5 @@
-#include <environment.h>
-#include <define.h>
+#include "../lib/environment.h"
+#include "../lib/define.h"
 
 #include <stdio.h>
 #include <unistd.h>

@@ -35,7 +35,8 @@ void* led_flicker(void *arguments)
           if (quit || !(*led_flick)) break;
         } while(--i);
     }
-  led_data = 128 | (*time_second); write(led_fd, &led_data, 1);
+  led_data = 128 | (*time_second);
+  write(led_fd, &led_data, 1);
 
   pthread_exit(NULL);
 }

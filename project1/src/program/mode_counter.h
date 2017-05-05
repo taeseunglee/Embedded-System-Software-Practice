@@ -1,8 +1,6 @@
 #ifndef __MODE_COUNTER__
 #define __MODE_COUNTER__
 
-#include <message.h>
-#include <environment.h>
 #include "../process/process.h"
 
 void mode_counter_global_init (struct environment * __env, int __msqid);

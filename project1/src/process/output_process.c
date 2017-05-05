@@ -1,8 +1,10 @@
 #include "./output_process.h"
 
 #define WRITE_ERROR_CHECK(fd, rcv_data, wbyte) \
+  ({ \
   if (write(fd, rcv_data, wbyte) < 0) \
-      perror("write");
+      perror("write"); \
+   })
 
 void output_process(struct environment *env)
 {
@@ -28,28 +30,27 @@ void output_process(struct environment *env)
         {
           id_type = rcv_buf.mtext[0];
 
-          // TODO: Check "Write Error"
           switch (id_type)
             {
             case ID_DOT:
                 {
-                  memcpy(rcv_data, rcv_buf.mtext+1, MAX_DOT);
-                  write(dot_fd, rcv_data, MAX_DOT); // TODO: WRITE ERROR CHECK
+                  memcpy(rcv_data, rcv_buf.mtext+1, LEN_DOT);
+                  WRITE_ERROR_CHECK(dot_fd, rcv_data, LEN_DOT);
                 } break;
             case ID_LED:
                 {
                   rcv_data[0] = rcv_buf.mtext[1];
-                  write(led_fd, &rcv_data, 1);
+                  WRITE_ERROR_CHECK(led_fd, &rcv_data, LEN_LED);
                 } break;
             case ID_FND: 
                 {
-                  memcpy(rcv_data, rcv_buf.mtext+1, 4);
-                  write(fnd_fd, &rcv_data, 4);
+                  memcpy(rcv_data, rcv_buf.mtext+1, LEN_FND);
+                  WRITE_ERROR_CHECK(fnd_fd, &rcv_data, LEN_FND);
                 } break;
             case ID_LCD:
                 {
-                  memcpy(rcv_data, rcv_buf.mtext+1, MAX_TEXT);
-                  write(lcd_fd, rcv_data, MAX_TEXT);
+                  memcpy(rcv_data, rcv_buf.mtext+1, LEN_LCD);
+                  WRITE_ERROR_CHECK(lcd_fd, rcv_data, LEN_LCD);
                 } break;
             case ID_MOTOR:
                 {
@@ -80,8 +81,8 @@ void device_clear(struct environment *env)
 {
   static unsigned blank_data[50] = {0,};
 
-  write(env->led_fd, blank_data, 1);
-  write(env->fnd_fd, blank_data, 4);
-  write(env->lcd_fd, blank_data, MAX_TEXT);
-  write(env->dot_fd, blank_data, MAX_DOT);
+  write(env->led_fd, blank_data, LEN_LED);
+  write(env->fnd_fd, blank_data, LEN_FND);
+  write(env->lcd_fd, blank_data, LEN_LCD);
+  write(env->dot_fd, blank_data, LEN_DOT);
 }
