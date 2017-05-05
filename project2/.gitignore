@@ -6,4 +6,6 @@ a.out
 20141570
 .tmp_versions
 *.ko
-
+Module.symvers
+kernel_timer.mod.c
+modules.order

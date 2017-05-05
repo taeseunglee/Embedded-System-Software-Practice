@@ -70,7 +70,7 @@ ssize_t iom_led_write(struct file *inode, const char *gdata, size_t length, loff
   const char *tmp = gdata;
 
 
-  memcpy((void __force *)value, tmp, length);
+  memcpy(&value, tmp, length);
 
   _s_value = (unsigned short)value;
   outw(_s_value, (unsigned int)iom_fpga_led_addr);

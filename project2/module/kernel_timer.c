@@ -116,15 +116,16 @@ kernel_timer_device_set(struct file * file)
       mydata.loc_fnd &= 0x03;
     }
 
-  // suppose strlen < 16 --> TODO: Need a generalization
   if (!remained_stn_cnt)
     {
       remained_stn_cnt = 16 - len_stn;
       direction_stn ^= 1;
     }
 
-  if (direction_stn) { __SHIFT_TEXT_1(stn, idx); }
-  else { __SHIFT_TEXT_0(stn, idx); }
+  if (direction_stn)
+    { __SHIFT_TEXT_1(stn, idx); }
+  else
+    { __SHIFT_TEXT_0(stn, idx); }
 
 
   if (!remained_name_cnt)
@@ -133,8 +134,10 @@ kernel_timer_device_set(struct file * file)
       direction_name ^= 1;
     }
 
-  if (direction_name) { __SHIFT_TEXT_1(name, idx); }
-  else { __SHIFT_TEXT_0(name, idx); }
+  if (direction_name)
+    { __SHIFT_TEXT_1(name, idx); }
+  else
+    { __SHIFT_TEXT_0(name, idx); }
 
   -- remained_stn_cnt;
   -- remained_name_cnt;
@@ -177,6 +180,18 @@ kernel_timer_blink(unsigned long timeout)
 
       add_timer(&mydata.timer);
     }
+  else // clear the board
+    {
+      char dev_data[32];
+      memset(dev_data, 0, 32);
+
+      iom_fpga_fnd_fops.write(mydata.file, dev_data, 4, 0);
+      iom_led_fops.write(mydata.file, dev_data, 1, 0);
+      iom_fpga_dot_fops.write(mydata.file, dev_data, 10, 0);
+      iom_fpga_text_lcd_fops.write(mydata.file, dev_data, 32, 0);
+
+      printk("Kernel timer ends\n");
+    }
 }
 
 ssize_t
@@ -192,8 +207,6 @@ kernel_timer_write(struct file *file, const char *gdata, size_t length, loff_t *
 
   del_timer_sync(&mydata.timer);
 
-  len_stn = strlen(STUDENT_NUMBER);
-  len_name = strlen(NAME);
 
   remained_stn_cnt = 16 - len_stn;
   remained_name_cnt = 16 - len_name;
@@ -211,18 +224,6 @@ kernel_timer_write(struct file *file, const char *gdata, size_t length, loff_t *
 
   return 1;
 }
-
-/* This function is called whenever a process tries to 
- * do an ioctl on our device file. We get two extra 
- * parameters (additional to the inode and file 
- * structures, which all device functions get): the number
- * of the ioctl called and the parameter given to the 
- * ioctl function.
- *
- * If the ioctl is write or read/write (meaning output 
- * is returned to the calling process), the ioctl call 
- * returns the output of this function.
- */
 
 /* ioctl_num : The number of the ioctl */
 /* ioctl_param : The parameter to it */
@@ -245,10 +246,25 @@ kernel_timer_init(void)
 {
   int result;
 
-  struct class *kernel_timer_dev_class=NULL;
-  struct device *kernel_timer_dev=NULL;
+  struct class *kernel_timer_dev_class = NULL;
+  struct device*kernel_timer_dev = NULL;
 
   printk("kernel_timer_init\n");
+
+  len_stn = strlen(STUDENT_NUMBER);
+  len_name = strlen(NAME);
+
+  if (len_stn > 16)
+    {
+      printk("The Student Number is too long(length: %d)\n", len_stn);
+      return -1;
+    }
+
+  if (len_name > 16)
+    {
+      printk("The name is too long(length: %d)\n", len_name);
+      return -1;
+    }
 
   iom_fpga_fnd_init();
   iom_fpga_dot_init();
