@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <sys/ioctl.h>
+#include "../module/kernel_timer.h"
 
 #ifndef likely
 # define likely(x) __builtin_expect(!!(x), 1)
@@ -74,6 +76,8 @@ main(int argc, char **argv)
   printf("%ld ", (packed_data & 0x00FF0000) >> 16);
   printf("%ld ", (packed_data & 0x0000FF00) >> 8);
   printf("%ld\n", packed_data & 0x000000FF);
+
+  ioctl(timer_fd, KTIMER_START, packed_data);
 
   close(timer_fd);
 
