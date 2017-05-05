@@ -9,20 +9,15 @@
 /* ioctl numbers */
 #include "./kernel_timer.h"
 
-#include "./fpga_dot/fpga_dot_driver.c"
-#include "./fpga_fnd/fpga_fnd_driver.c"
-#include "./fpga_led/fpga_led_driver.c"
-#include "./fpga_text_lcd/fpga_text_lcd_driver.c"
+#include "./submodule/fpga_dot_driver.c"
+#include "./submodule/fpga_fnd_driver.c"
+#include "./submodule/fpga_led_driver.c"
+#include "./submodule/fpga_text_lcd_driver.c"
 
-#include <asm/unistd.h>
 
-/*
-#define __LOC_VAL3 1
-#define __LOC_VAL2 10
-#define __LOC_VAL1 100
-#define __LOC_VAL0 1000
-#define FND_LOC_VALUE(NUM) __LOC_VAL ## NUM
-*/
+
+static int kernel_timer_usage = 0;
+
 
 /* shift right */
 #define __SHIFT_TEXT_0(str, idx) do { \
@@ -30,7 +25,7 @@
     do { \
       str[idx] = str[idx-1]; \
     } while (--idx); \
-    str[0] = 0; \
+    str[0] = 0;\
   } while (0);
 
 /* shift left */
@@ -44,13 +39,16 @@
   } while(0);
  
 
-
-static int kernel_timer_usage = 0;
+static int remained_stn_cnt;
+static int remained_name_cnt;
+static int direction_stn;
+static int direction_name;
 
 int kernel_timer_open(struct inode *, struct file *);
 int kernel_timer_release(struct inode *, struct file *);
 ssize_t kernel_timer_write(struct file *, const char *, size_t, loff_t *);
 long kernel_timer_ioctl(struct file *, unsigned int, unsigned long);
+void kernel_timer_device_set(struct file * file);
 
 static struct file_operations kernel_timer_fops =
 {
@@ -63,38 +61,33 @@ static struct file_operations kernel_timer_fops =
 struct struct_mydata 
 {
   struct timer_list timer;
+  struct file *file;
   int count;
   int pat_fnd;
   int loc_fnd;
 };
 
-static struct struct_mydata mydata;
-static unsigned long t_interval;
-static int dot_fd;
-static int led_fd;
-static int fnd_fd;
-static int lcd_fd;
-
-
 /* stn : student number */
 /* direction: 0 - right, 1 - left */
-static char stn[16] = "20141570";
-static char name[16] = "Taeseung Lee";
+static struct struct_mydata mydata;
+static unsigned long t_interval;
+static char stn[16];
+static char name[16];
 static int len_stn;
 static int len_name;
-static int remained_stn_cnt;
-static int remained_name_cnt;
-static int direction_stn;
-static int direction_name;
+
+#define STUDENT_NUMBER "20141570"
+#define NAME "Taeseung Lee"
 
 void
 kernel_timer_device_set(struct file * file)
 {
   int idx = 0;
+  char dev_data[33];
+
 
   /* TODO: Error check */
   /** set devices **/
-  char dev_data[33];
 
   /* set fnd device */
   memset(dev_data, 0, 4);
@@ -110,20 +103,23 @@ kernel_timer_device_set(struct file * file)
   iom_fpga_dot_fops.write(file, dev_data, 10, 0);
 
   /* set text lcd */
-  direction_stn     = direction_name = 0;
-  remained_stn_cnt  = 16 - (len_stn = strlen(stn));
-  remained_name_cnt = 16 - (len_name = strlen(name));
-
   memcpy(dev_data, stn, 16*sizeof(char));
   memcpy(dev_data+16, name, 16*sizeof(char));
   iom_fpga_text_lcd_fops.write(file, dev_data, 32, 0);
 
-  // suppose strlen < 16 --> TODO: Need a generalization
-  if (remained_stn_cnt)
-    -- remained_stn_cnt;
-  else
+
+  ++ mydata.pat_fnd;
+  if (mydata.pat_fnd > 8)
     {
-      remained_stn_cnt = 16 - len_stn - 1;
+      mydata.pat_fnd = 1;
+      ++ mydata.loc_fnd;
+      mydata.loc_fnd &= 0x03;
+    }
+
+  // suppose strlen < 16 --> TODO: Need a generalization
+  if (!remained_stn_cnt)
+    {
+      remained_stn_cnt = 16 - len_stn;
       direction_stn ^= 1;
     }
 
@@ -131,16 +127,17 @@ kernel_timer_device_set(struct file * file)
   else { __SHIFT_TEXT_0(stn, idx); }
 
 
-  if (remained_name_cnt)
-    -- remained_name_cnt;
-  else
+  if (!remained_name_cnt)
     {
-      remained_name_cnt = 16 - len_name - 1;
+      remained_name_cnt = 16 - len_name;
       direction_name ^= 1;
     }
 
   if (direction_name) { __SHIFT_TEXT_1(name, idx); }
   else { __SHIFT_TEXT_0(name, idx); }
+
+  -- remained_stn_cnt;
+  -- remained_name_cnt;
 }
 
 int
@@ -170,24 +167,16 @@ kernel_timer_open(struct inode *minode, struct file *mfile)
 static void
 kernel_timer_blink(unsigned long timeout)
 {
-//  struct struct_mydata *p_data = (struct struct_mydata*)timeout;
+  if (mydata.count --)
+    {
+      kernel_timer_device_set(mydata.file);
 
-//  printk("kernel_timer_blink %d\n", p_data->count);
+      mydata.timer.expires = get_jiffies_64() + t_interval;
+      mydata.timer.data = (unsigned long)&mydata;
+      mydata.timer.function = kernel_timer_blink;
 
-//  if( --p_data->count )
-//    return;
-
-  if (-- mydata.count)
-    return ;
-
-
-  kernel_timer_device_set();
-
-  mydata.timer.expires = get_jiffies_64() + t_interval;
-  mydata.timer.data = (unsigned long)&mydata;
-  mydata.timer.function = kernel_timer_blink;
-
-  add_timer(&mydata.timer);
+      add_timer(&mydata.timer);
+    }
 }
 
 ssize_t
@@ -195,13 +184,7 @@ kernel_timer_write(struct file *file, const char *gdata, size_t length, loff_t *
 {
   long tmp = (long) gdata;
 
-//  long kernel_timer_buff = 0;
-
-//  if ( copy_from_user(&kernel_timer_buff, tmp, sizeof(long)) )
-//    return -EFAULT;
-  
-
-  /* modify HZ to interval after I set timer interval at interval variable */
+  mydata.file     = file;
   mydata.count    = tmp & 0xFF;
   mydata.pat_fnd  = (tmp & 0xFF0000) >> 16;
   mydata.loc_fnd  = (tmp & 0xFF000000) >> 24;
@@ -209,14 +192,23 @@ kernel_timer_write(struct file *file, const char *gdata, size_t length, loff_t *
 
   del_timer_sync(&mydata.timer);
 
+  len_stn = strlen(STUDENT_NUMBER);
+  len_name = strlen(NAME);
 
-  kernel_timer_device_set();
+  remained_stn_cnt = 16 - len_stn;
+  remained_name_cnt = 16 - len_name;
+  direction_stn = direction_name = 0;
+
+  strncpy(stn, STUDENT_NUMBER, 16);
+  strncpy(name, NAME, 16);
+
 
   mydata.timer.expires  = jiffies_64 + t_interval;
   mydata.timer.data     = (unsigned long)&mydata;
   mydata.timer.function	= kernel_timer_blink;
 
   add_timer(&mydata.timer);
+
   return 1;
 }
 
@@ -240,19 +232,8 @@ kernel_timer_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioct
   /* Switch according to the ioctl called */
   switch (ioctl_num)
     {
-    case KTIMER_SET_FND:
-      break;
-
-    case KTIMER_SET_LED:
-      break;
-
-    case KTIMER_SET_DOT:
-      break;
-
-    case KTIMER_SET_LCD:
-      break;
     case KTIMER_START:
-      kernel_timer_write(file, (char *) ioctl_param, (size_t) 0, (loff_t *) 0);
+      kernel_timer_write(file, (char *) ioctl_param, 0, 0);
       break;
     }
 
@@ -269,13 +250,16 @@ kernel_timer_init(void)
 
   printk("kernel_timer_init\n");
 
+  iom_fpga_fnd_init();
+  iom_fpga_dot_init();
+  iom_led_init();
+  iom_fpga_text_lcd_init();
+  
 
-  result = register_chrdev(KERNEL_TIMER_MAJOR,
-                           KERNEL_TIMER_NAME,
-                           &kernel_timer_fops);
+  result = register_chrdev(KERNEL_TIMER_MAJOR, KERNEL_TIMER_NAME, &kernel_timer_fops);
   if(result <0)
     {
-      printk( "error %d\n",result);
+      printk( "Kernel_timer_init error %d\n",result);
       return result;
     }
 
@@ -297,6 +281,11 @@ kernel_timer_exit(void)
   printk("kernel_timer_exit\n");
   kernel_timer_usage = 0;
   del_timer_sync(&mydata.timer);
+
+  iom_fpga_fnd_exit();
+  iom_fpga_dot_exit();
+  iom_led_exit();
+  iom_fpga_text_lcd_exit();
 
   unregister_chrdev(KERNEL_TIMER_MAJOR, KERNEL_TIMER_NAME);
 }
