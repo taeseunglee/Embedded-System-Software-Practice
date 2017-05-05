@@ -2,5 +2,8 @@
 *.swp
 *.swo
 a.out
+.*.cmd
 20141570
 .tmp_versions
+*.ko
+
