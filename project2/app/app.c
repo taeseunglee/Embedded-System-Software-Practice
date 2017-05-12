@@ -22,14 +22,6 @@
 #define TRUE  1
 #define FALSE 0
 
-/*
-struct converted_argv
-{
-  int time_interval;
-  int number;
-  int startup_option;
-};
-*/
 static inline int
 atoi_and_check (const char *str IN);
 
@@ -92,7 +84,7 @@ atoi_and_check (const char *num IN)
   if (unlikely(num == NULL))
     {
       printf("[atoi_after_check] String empty Error!\n");
-      return -1;
+      exit(-1);
     }
 
   for (i = 0; num[i]; ++i)
@@ -101,7 +93,7 @@ atoi_and_check (const char *num IN)
       if (unlikely(tmp < 0 || tmp > 9))
         {
           perror("[check_out_atoi] Arguments Error\n");
-          return -1;
+          exit(-1);
         }
       
       res = ((res<<1) + (res<<3)) + tmp; // res = res*10 + tmp;
@@ -109,18 +101,3 @@ atoi_and_check (const char *num IN)
 
   return res;
 }
-
-/*
-static inline struct converted_argv
-check_argv(char **argv IN)
-{
-   Declaration
-  struct converted_argv conv_argv;
-
-  conv_argv.time_interval  = atoi_and_check(argv[1]);
-  conv_argv.number         = atoi_and_check(argv[2]);
-  conv_argv.startup_option = atoi_and_check(argv[3]);
-
-  return conv_argv;
-}
-*/
