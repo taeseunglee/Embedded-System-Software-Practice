@@ -5,9 +5,9 @@
 #include "./process/output_process.h"
 #include "./process/input_process.h"
 
-#include <environment.h>
-#include <define.h>
-#include <device.h>
+#include "lib/environment.h"
+#include "lib/define.h"
+#include "lib/device.h"
 
 unsigned int quit;
 const unsigned int minus_one = -1;
