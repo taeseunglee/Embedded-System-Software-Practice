@@ -19,6 +19,8 @@ input_process(struct environment *env)
   size_t buf_length = sizeof(message_buf);
   size_t size_mtext = sizeof(switch_mbuf.mtext);
 
+  char before_switch_status[MAX_BUTTON];
+
   /* Initialize variable */
   switch_mbuf.mtype = MTYPE_SWITCH;
   key_mbuf.mtype = MTYPE_READKEY;
@@ -33,6 +35,7 @@ input_process(struct environment *env)
     }
 
 
+  memset(before_switch_status, 0x00, MAX_BUTTON);
   while (!quit)
     {
       // read an event

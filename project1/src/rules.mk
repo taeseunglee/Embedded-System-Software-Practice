@@ -1,14 +1,11 @@
 BUILD_DIR = $(SRC_DIR)/../build
 OBJS_DIR = $(BUILD_DIR)/objs
-LIB_DIR = $(SRC_DIR)/lib
 
-MAIN_PROG = main
+MAIN_PROG = 20141570
 
-# CC= arm-none-linux-gnueabi-gcc
-CC= gcc
-C_FLAGS= --static -Wall
-LIB_PATH_FLAGS = -I $(LIB_DIR)
-PTHREAD_FLAG = -lpthread
+CC= arm-none-linux-gnueabi-gcc
+# CC= gcc
+C_FLAGS=-pthread -static -c -Wall
 
 
 .PHONY: clean
@@ -17,7 +14,7 @@ clean:
 	@rm -rf $(BUILD_DIR) $(SRC_DIR)/../$(MAIN_PROG)
 
 $(addsuffix .o, $(TARGET)): %.o: %.c %.h .mkdir.o
-	$(CC) $(LIB_PATH_FLAGS) $(C_FLAGS) -c $(basename $@).c -o $(OBJS_DIR)/$(basename $@).o $(PTHREAD_FLAG)
+	$(CC) $(C_FLAGS) $(basename $@).c -o $(OBJS_DIR)/$(basename $@).o
 
 .PHONY: .mkdir.o
 .mkdir.o:
