@@ -290,6 +290,8 @@ static int inter_release(struct inode *minode, struct file *mfile)
     end_timer_set = 0;
   }
 
+  inter_usage = 0;
+
   free_irq(gpio_to_irq(IMX_GPIO_NR(1, 11)), NULL);
   free_irq(gpio_to_irq(IMX_GPIO_NR(1, 12)), NULL);
   free_irq(gpio_to_irq(IMX_GPIO_NR(2, 15)), NULL);
