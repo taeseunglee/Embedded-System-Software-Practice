@@ -26,59 +26,113 @@ static int inter_major=242, inter_minor=0;
 static int result;
 static dev_t inter_dev;
 static struct cdev inter_cdev;
+
+
+
 static int inter_open(struct inode *, struct file *);
 static int inter_release(struct inode *, struct file *);
 static int inter_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos);
 
-irqreturn_t start_timer(int irq, void* dev_id, struct pt_regs* reg); /* HOME button */
-irqreturn_t pause_timer(int irq, void* dev_id, struct pt_regs* reg); /* BACK button */
-irqreturn_t reset_timer(int irq, void* dev_id, struct pt_regs* reg); /* VOL+ */
-irqreturn_t end_timer(int irq, void* dev_id, struct pt_regs* reg); /* VOL- */
+irqreturn_t start_timer(int irq, void* dev_id); /* HOME button */
+irqreturn_t pause_timer(int irq, void* dev_id); /* BACK button */
+irqreturn_t reset_timer(int irq, void* dev_id); /* VOL+ */
+irqreturn_t end_timer(int irq, void* dev_id); /* VOL- */
 
-static inter_usage=0;
+static int inter_usage=0;
 int interruptCount=0;
 
-wait_queue_head_t wq_write;
 DECLARE_WAIT_QUEUE_HEAD(wq_write);
 
 static struct file_operations inter_fops =
 {
-    .open = inter_open,
-    .write = inter_write,
-    .release = inter_release,
+  .open = inter_open,
+  .write = inter_write,
+  .release = inter_release,
 };
 
 irqreturn_t
-start_timer(int irq, void* dev_id, struct pt_regs* reg)
+start_timer(int irq, void* dev_id)
 {
-    mydata->is_pause = 0;
-    mydata.timer.expires = jiffies + (1 * HZ);
-    mydata.timer.data = (unsigned long)&mydata;
-    mydata.timer.function	= kernel_timer_blink;
+  printk(KERN_ALERT "[LOG] start_timer\n");
+  mydata.is_pause = 0;
 
-    return IRQ_HANDLED;
+  if (timer_set)
+    {
+      del_timer_sync(&mydata.timer);
+      timer_set = 0;
+    }
+
+  mydata.timer.expires = get_jiffies_64() + (1 * HZ);
+  mydata.timer.data = (unsigned long)&mydata;
+  mydata.timer.function	= kernel_timer_blink;
+
+  add_timer(&mydata.timer);
+  timer_set = 1;
+
+  return IRQ_HANDLED;
 }
 
 irqreturn_t
-pause_timer(int irq, void* dev_id, struct pt_regs* reg)
+pause_timer(int irq, void* dev_id)
 {
-    return IRQ_HANDLED;
+  printk(KERN_ALERT "[LOG] pause_timer\n");
+
+  mydata.is_pause = 1;
+
+  return IRQ_HANDLED;
 }
 
 irqreturn_t
-reset_timer(int irq, void* dev_id, struct pt_regs* reg)
+reset_timer(int irq, void* dev_id)
 {
-    /* TODO: Do this need pause */
-    mydata->sec = 0;
-    mydata->is_pause = 1;
-    return IRQ_HANDLED;
+  printk(KERN_ALERT "[LOG] reset_timer\n");
+  /* Reset time */
+  outw((unsigned short int)0, (unsigned int)iom_fpga_fnd_addr);
+
+  mydata.sec = 0;
+  mydata.is_pause = 1;
+
+  return IRQ_HANDLED;
 }
 
 irqreturn_t
-end_timer(int irq, void* dev_id, struct pt_regs* reg)
+end_timer(int irq, void* dev_id)
 {
-    mydata->is_pause = 1;
-    return IRQ_HANDLED;
+  static int is_pressed = 0;
+
+  printk(KERN_ALERT "[LOG] end_timer\n");
+
+  // init fnd
+  if (!is_pressed)
+    {
+      is_pressed = 1;
+      // wait end_data if it exists
+      if (end_timer_set)
+        del_timer_sync(&end_data.timer);
+
+      end_timer_set = 1;
+      end_data.sec = 0;
+      end_data.is_pause = 0;
+      end_data.timer.expires = get_jiffies_64() + (1 * HZ);
+      end_data.timer.data = (unsigned long)&end_data;
+      end_data.timer.function = kernel_timer_blink;
+      add_timer(&end_data.timer);
+
+      return IRQ_HANDLED;
+    }
+  else
+    {
+      is_pressed = 0;
+
+      end_data.is_pause = 1;
+      if (end_timer_set)
+        {
+          del_timer_sync(&end_data.timer);
+          end_timer_set = 0;
+        }
+  
+      return IRQ_HANDLED;
+    }
 }
 
 static int inter_open(struct inode *minode, struct file *mfile){
@@ -111,25 +165,46 @@ static int inter_open(struct inode *minode, struct file *mfile){
     printk(KERN_ALERT "IRQ Number : %d\n",irq);
     ret=request_irq(irq, end_timer, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "voldown", 0);
 
+    // Init timer
+    init_timer(&mydata.timer);
+    init_timer(&end_data.timer);
+    timer_set = 0;
+    end_timer_set = 0;
+    mydata.sec = 0;
+    mydata.is_end = 0;
+    end_data.is_end = 1;
+
     return 0;
 }
 
-static int inter_release(struct inode *minode, struct file *mfile){
-    free_irq(gpio_to_irq(IMX_GPIO_NR(1, 11)), NULL);
-    free_irq(gpio_to_irq(IMX_GPIO_NR(1, 12)), NULL);
-    free_irq(gpio_to_irq(IMX_GPIO_NR(2, 15)), NULL);
-    free_irq(gpio_to_irq(IMX_GPIO_NR(5, 14)), NULL);
+static int inter_release(struct inode *minode, struct file *mfile)
+{
+  if (timer_set)
+    {
+      del_timer_sync(&mydata.timer);
+      timer_set = 0;
+    }
+  if (end_timer_set)
+    {
+      del_timer_sync(&end_data.timer);
+      end_timer_set = 0;
+    }
 
-    printk(KERN_ALERT "Release Module\n");
-    return 0;
+  free_irq(gpio_to_irq(IMX_GPIO_NR(1, 11)), NULL);
+  free_irq(gpio_to_irq(IMX_GPIO_NR(1, 12)), NULL);
+  free_irq(gpio_to_irq(IMX_GPIO_NR(2, 15)), NULL);
+  free_irq(gpio_to_irq(IMX_GPIO_NR(5, 14)), NULL);
+
+  printk(KERN_ALERT "Release Module\n");
+  return 0;
 }
 
 static int inter_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos ){
     if(interruptCount==0)
-    {
+      {
         printk("sleep on\n");
         interruptible_sleep_on(&wq_write);
-    }
+      }
 
     printk("write\n");
     return 0;
@@ -137,48 +212,51 @@ static int inter_write(struct file *filp, const char *buf, size_t count, loff_t 
 
 static int inter_register_cdev(void)
 {
-    int error;
-    if(inter_major) 
+  int error;
+  if(inter_major) 
     {
-        inter_dev = MKDEV(inter_major, inter_minor);
-        error = register_chrdev_region(inter_dev,1,"stopwatch");
+      inter_dev = MKDEV(inter_major, inter_minor);
+      error = register_chrdev_region(inter_dev,1,"stopwatch");
     }else
-    {
+      {
         error = alloc_chrdev_region(&inter_dev,inter_minor,1,"stopwatch");
         inter_major = MAJOR(inter_dev);
-    }
+      }
     if(error<0) 
-    {
+      {
         printk(KERN_WARNING "stopwatch: can't get major %d\n", inter_major);
         return result;
-    }
+      }
     printk(KERN_ALERT "major number = %d\n", inter_major);
     cdev_init(&inter_cdev, &inter_fops);
     inter_cdev.owner = THIS_MODULE;
     inter_cdev.ops = &inter_fops;
     error = cdev_add(&inter_cdev, inter_dev, 1);
     if(error)
-    {
+      {
         printk(KERN_NOTICE "inter Register Error %d\n", error);
-    }
+      }
     return 0;
 }
 
 static int __init inter_init(void)
 {
-    int result;
-    if ((result = inter_register_cdev()) < 0 )
-        return result;
-    printk(KERN_ALERT "Init Module Success \n");
-    printk(KERN_ALERT "Device : %s, Major Num : 242\n", DEV_NAME);
-    return 0;
+  int result;
+  if ((result = inter_register_cdev()) < 0 )
+    return result;
+  iom_fpga_fnd_addr = ioremap(IOM_FND_ADDRESS, 0x4);
+
+  printk(KERN_ALERT "Init Module Success \n");
+  printk(KERN_ALERT "Device : %s, Major Num : 242\n", DEV_NAME);
+  return 0;
 }
 
 static void __exit inter_exit(void)
 {
-    cdev_del(&inter_cdev);
-    unregister_chrdev_region(inter_dev, 1);
-    printk(KERN_ALERT "Remove Module Success \n");
+  cdev_del(&inter_cdev);
+  iounmap(iom_fpga_fnd_addr);
+  unregister_chrdev_region(inter_dev, 1);
+  printk(KERN_ALERT "Remove Module Success \n");
 }
 
 module_init(inter_init);

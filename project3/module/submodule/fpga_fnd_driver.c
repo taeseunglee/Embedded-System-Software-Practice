@@ -23,7 +23,7 @@ AUTH : largest@huins.com */
 
 //Global variable
 static int fpga_fnd_port_usage = 0;
-static unsigned char *iom_fpga_fnd_addr;
+unsigned char *iom_fpga_fnd_addr;
 
 // define functions...
 ssize_t iom_fpga_fnd_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what);

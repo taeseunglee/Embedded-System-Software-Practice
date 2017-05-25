@@ -13,3 +13,4 @@ clean :
 	rm -f *.cmd
 	rm -f *.symvers
 	rm -f *.order
+	rm -f .*.cmd

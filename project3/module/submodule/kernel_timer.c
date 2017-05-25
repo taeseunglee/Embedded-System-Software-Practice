@@ -8,23 +8,20 @@
 #define END_TIME 3
 
 static int kernel_timer_usage = 0;
+wait_queue_head_t wq_write;
+int timer_set;
+int end_timer_set;
 
 int kernel_timer_open(struct inode *, struct file *);
 int kernel_timer_release(struct inode *, struct file *);
 ssize_t kernel_timer_write(struct file *, const char *, size_t, loff_t *);
 
-static struct file_operations kernel_timer_fops =
-{
-  .open = kernel_timer_open,
-  .write = kernel_timer_write,
-  .release = kernel_timer_release
-};
-
-static struct struct_mydata
+struct struct_mydata
 {
   struct timer_list timer;
   int sec;
   int is_pause;
+  int is_end;
 };
 
 struct struct_mydata mydata;
@@ -34,7 +31,11 @@ int kernel_timer_release(struct inode *minode, struct file *mfile)
 {
   printk("kernel_timer_release\n");
   kernel_timer_usage = 0;
-  del_timer_sync(&mydata.timer);
+  if (timer_set)
+    {
+      del_timer_sync(&mydata.timer);
+      timer_set = 0;
+    }
 
   return 0;
 }
@@ -48,6 +49,7 @@ int kernel_timer_open(struct inode *minode, struct file *mfile)
     }
   kernel_timer_usage = 1;
   init_timer(&(mydata.timer));
+  init_timer(&(end_data.timer));
 
   return 0;
 }
@@ -56,62 +58,73 @@ void
 kernel_timer_blink(unsigned long timeout) 
 {
   struct struct_mydata *p_data = (struct struct_mydata*)timeout;
-  if (p_data->is_pause)
-    return ;
-
-  printk("kernel_timer_blink %d\n", p_data->sec);
-
-  ++ p_data->sec;
-  // the time is larger than 1 hour.
-  if (!(p_data->sec < 3600))
-    p_data->sec = 0;
-
   char dev_data[4];
-  int sec = p_data;
-  // TODO: Must modify  NULL.
-  dev_data[0] = sec/600;
-  dev_data[1] = (sec/60)%10;
-  dev_data[2] = (sec%60)/10;
-  dev_data[3] = sec%10;
-  iom_fpga_fnd_fops.write(NULL, dev_data, 4, 0);
 
-
-  // TODO: Modify mydata to p_data
-  mydata.timer.expires = get_jiffies_64() + (1 * HZ);
-  mydata.timer.data = (unsigned long)&mydata;
-  mydata.timer.function = kernel_timer_blink;
-
-  add_timer(&mydata.timer);
-}
-
-void
-kernel_timer_end_blink(unsigned long timeout) 
-{
-  struct struct_mydata *p_data = (struct struct_mydata*)timeout;
-
-  /* VOL- button released, just stop it */
   if (p_data->is_pause)
+  {
+    p_data->is_pause = 0;
+    timer_set = 0;
     return ;
+  }
 
-  printk("kernel_timer_end_blink %d\n", p_data->sec);
-
-  -- p_data->sec;
-
-  /* Terminate an application and init FND */
-  if (!p_data->sec)
+  printk(KERN_ALERT "kernel_timer_blink\n");
+  // end timer created by vol-
+  if (p_data->is_end)
     {
-      char dev_data[4];
-      memset(dev_data, 0, 4);
+      if (p_data->is_pause)
+        {
+          end_timer_set = 0;
+          return ;
+        }
+      printk("kernel_timer_blink(end) %d\n", p_data->sec);
+      ++ p_data->sec;
+
+      // terminate an application
+      if (p_data->sec == END_TIME)
+        {
+          if (timer_set)
+            {
+              del_timer_sync(&mydata.timer);
+              timer_set = 0;
+            }
+          if (end_timer_set)
+            end_timer_set = 0;
+          wake_up_interruptible(&wq_write);
+
+          outw((unsigned short int)0,
+               (unsigned int)iom_fpga_fnd_addr);
+          return ;
+        }
+    }
+  else // timer
+    {
+      int sec;
+      unsigned int short value_short;
+
+      ++ p_data->sec;
+      printk("kernel_timer_blink %d\n", p_data->sec);
+
+      // the time is larger than 1 hour.
+      if (!(p_data->sec < 3600))
+        p_data->sec = 0;
+
+      sec = p_data->sec;
       // TODO: Must modify  NULL.
-      iom_fpga_fnd_fops.write(NULL, dev_data, 4, 0);
-      return ;
+      dev_data[0] = sec/600;
+      dev_data[1] = (sec/60)%10;
+      dev_data[2] = (sec%60)/10;
+      dev_data[3] = sec%10;
+
+      value_short = (dev_data[0] << 12) | (dev_data[1] << 8) | (dev_data[2] << 4) | dev_data[3];
+
+      outw(value_short, (unsigned int)iom_fpga_fnd_addr);	
     }
 
-  end_data.timer.expires = get_jiffies_64() + (1 * HZ);
-  end_data.timer.data = (unsigned long)&end_data;
-  end_data.timer.function = kernel_timer_end_blink;
+  p_data->timer.expires = get_jiffies_64() + (1 * HZ);
+  p_data->timer.data = (unsigned long)p_data;
+  p_data->timer.function = kernel_timer_blink;
 
-  add_timer(&end_data.timer);
+  add_timer(&p_data->timer);
 }
 
 
@@ -131,7 +144,6 @@ ssize_t kernel_timer_write(struct file *inode, const char *gdata, size_t length,
 
   printk("data  : %d \n",mydata.sec);
 
-  del_timer_sync(&mydata.timer);
 
   mydata.timer.expires = jiffies + (1 * HZ);
   mydata.timer.data = (unsigned long)&mydata;
