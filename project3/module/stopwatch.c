@@ -83,7 +83,6 @@ kernel_timer_blink(unsigned long timeout)
     return ;
   }
 
-  printk(KERN_ALERT "kernel_timer_blink\n");
   // end timer created by vol-
   if (p_data->is_end)
     {
@@ -92,7 +91,7 @@ kernel_timer_blink(unsigned long timeout)
           end_timer_set = 0;
           return ;
         }
-      printk("kernel_timer_blink(end) %d\n", p_data->sec);
+      printk("kernel_timer_blink(with end_timer)(second) %d\n", p_data->sec);
       ++ p_data->sec;
 
       // terminate an application
@@ -100,7 +99,7 @@ kernel_timer_blink(unsigned long timeout)
         {
           if (timer_set)
             {
-              del_timer_sync(&mydata.timer);
+              del_timer(&mydata.timer);
               timer_set = 0;
             }
           if (end_timer_set)
@@ -118,7 +117,7 @@ kernel_timer_blink(unsigned long timeout)
       unsigned int short value_short;
 
       ++ p_data->sec;
-      printk("kernel_timer_blink %d\n", p_data->sec);
+      printk("kernel_timer_blink current time(second): %d\n", p_data->sec);
 
       // the time is larger than 1 hour.
       if (!(p_data->sec < 3600))
@@ -147,13 +146,14 @@ kernel_timer_blink(unsigned long timeout)
 start_timer(int irq, void* dev_id)
 {
   printk(KERN_ALERT "[LOG] start_timer\n");
+
+  
+
   mydata.is_pause = 0;
 
+  // If you push start key but timer is already executed
   if (timer_set)
-  {
-    del_timer_sync(&mydata.timer);
-    timer_set = 0;
-  }
+    return IRQ_HANDLED;
 
   mydata.timer.expires = get_jiffies_64() + (1 * HZ);
   mydata.timer.data = (unsigned long)&mydata;
@@ -201,7 +201,7 @@ end_timer(int irq, void* dev_id)
     is_pressed = 1;
     // wait end_data if it exists
     if (end_timer_set)
-      del_timer_sync(&end_data.timer);
+      del_timer(&end_data.timer);
 
     end_timer_set = 1;
     end_data.sec = 0;
@@ -220,7 +220,7 @@ end_timer(int irq, void* dev_id)
     end_data.is_pause = 1;
     if (end_timer_set)
     {
-      del_timer_sync(&end_data.timer);
+      del_timer(&end_data.timer);
       end_timer_set = 0;
     }
 
@@ -281,12 +281,12 @@ static int inter_release(struct inode *minode, struct file *mfile)
 {
   if (timer_set)
   {
-    del_timer_sync(&mydata.timer);
+    del_timer(&mydata.timer);
     timer_set = 0;
   }
   if (end_timer_set)
   {
-    del_timer_sync(&end_data.timer);
+    del_timer(&end_data.timer);
     end_timer_set = 0;
   }
 
@@ -301,7 +301,8 @@ static int inter_release(struct inode *minode, struct file *mfile)
   return 0;
 }
 
-static int inter_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos ){
+static int inter_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
+{
   if(interruptCount==0)
   {
     printk("sleep on\n");
