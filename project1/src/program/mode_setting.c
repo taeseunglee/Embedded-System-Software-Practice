@@ -31,6 +31,13 @@ mode_setting_init(void)
 }
 
 void
+mode_setting_exit()
+{
+   set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+}
+
+void
 mode_setting(message_buf rcv_buf)
 {
   if (rcv_buf.mtext[0])

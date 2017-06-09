@@ -36,7 +36,7 @@ void* print_cursor(void *arguments)
 
   int i = 0;
 
-  while ((*mode) == 3 && !quit)
+  while ((*mode) == 3)
     {
       if (*cursor_hide)
         write(dot_fd, mask, LEN_DOT);
@@ -51,7 +51,7 @@ void* print_cursor(void *arguments)
           } while(--i);
         }
 
-      if ((*mode) != 3 || quit)
+      if ((*mode) != 3)
         break;
 
       // hide
@@ -95,6 +95,13 @@ mode_draw_board_init()
   count = 0;
   if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0)
     perror("pthread_create");
+}
+
+void
+mode_draw_board_exit()
+{
+   set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
 void

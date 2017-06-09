@@ -109,11 +109,22 @@ mode_clock_init(void)
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
+void
+mode_clock_exit(void)
+{
+  if (is_led_flick_on)
+    {
+      is_led_flick_on = FALSE;
+      pthread_join(flicker_thread, NULL);
+    }
+  set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+}
+
 void 
 mode_clock(message_buf rcv_buf)
 {
   /* declare and set variables for Mode1 */
-  pthread_t flicker_thread;
   int time_spent;
   clock_t end;
 

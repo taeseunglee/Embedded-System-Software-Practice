@@ -67,6 +67,13 @@ mode_text_editor_init()
 }
 
 void
+mode_text_editor_exit()
+{
+   set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+}
+
+void
 mode_text_editor(message_buf rcv_buf)
 {
   static int prior_pressed, times;

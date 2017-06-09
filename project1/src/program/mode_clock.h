@@ -20,11 +20,11 @@ struct argu_led_flick {
   struct environment *env;
 };
 
-extern unsigned int quit;
 
 void* led_flicker(void *arguments);
 void mode_clock_global_init(struct environment *__env, int __msqid);
 void mode_clock_init(void);
+void mode_clock_exit(void);
 void mode_clock(message_buf rcv_buf);
 
 #endif /* __MODE_CLOCK__ */

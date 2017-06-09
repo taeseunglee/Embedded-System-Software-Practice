@@ -54,6 +54,13 @@ mode_counter_init(void)
 }
 
 void
+mode_counter_exit(void)
+{
+  set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+}
+
+void
 mode_counter(message_buf rcv_buf)
 {
   if (rcv_buf.mtext[0])

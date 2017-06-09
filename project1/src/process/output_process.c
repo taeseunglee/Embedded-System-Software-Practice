@@ -14,6 +14,7 @@ void output_process(struct environment *env)
   int fnd_fd = env->fnd_fd;
   int lcd_fd = env->lcd_fd;
 
+  int is_running_program = TRUE;
   int id_type;
   unsigned char rcv_data[20];
 
@@ -24,7 +25,7 @@ void output_process(struct environment *env)
   if ((msqid = msgget(env->msg_key, msgflg)) < 0)
     perror("msgget");
 
-  while (!quit)
+  while (is_running_program)
     {
       if (msgrcv(msqid, &rcv_buf, MAX_MSGSZ, MTYPE_OUTPUT, 0))
         {
@@ -67,6 +68,15 @@ void output_process(struct environment *env)
             case DEVICE_CLEAR:
                 {
                   device_clear(env);
+                } break;
+            case END_PROGRAM:
+                {
+                  is_running_program = FALSE;
+                } break;
+            default:
+                {
+                  // TODO: error
+                  is_running_program = FALSE;
                 } break;
             }
         }

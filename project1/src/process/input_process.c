@@ -3,6 +3,7 @@
 void
 input_process(struct environment *env)
 {
+  int is_running_program = TRUE;
   struct input_event ev[BUFF_SIZE];
   unsigned int press_find, i;
 
@@ -36,7 +37,7 @@ input_process(struct environment *env)
 
 
   memset(before_switch_status, 0x00, MAX_BUTTON);
-  while (!quit)
+  while (is_running_program)
     {
       // read an event
       if (read(ev_fd, ev, size_event * BUFF_SIZE) >= size_event) 
@@ -45,10 +46,12 @@ input_process(struct environment *env)
             {
               ev[0].value = KEY_RELEASE; // prevent to read duplicate data
               key_mbuf.mtext[0] = ev[0].code;
+              if (ev[0].code == BACK)
+                is_running_program = FALSE;
               MSGSND_OR_DIE(msqid, &key_mbuf, buf_length, IPC_NOWAIT);
             }
         }
-      usleep(100000);
+      usleep(200000);
 
       /* read push-switch */
       read(push_switch_fd, &(switch_mbuf.mtext), size_switch);
