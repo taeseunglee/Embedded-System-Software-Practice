@@ -34,14 +34,10 @@ struct environment
   struct __mode5_flag mode5_flag;
 };
 
-// TODO: save quit in env
-extern unsigned int quit;
 
 
 void construct_environment(struct environment** env);
 void destruct_environment(struct environment* env);
-void kill_all_processes(struct environment *env);
-void quit_signal(int sig);
 
 
 #endif

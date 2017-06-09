@@ -31,7 +31,6 @@ typedef struct msgbuf {
   if (msgsnd(__VA_ARGS__) < 0) \
     { \
       perror("msgsnd"); \
-      kill_all_processes(env); \
     }
 
 #define set_out_buf(snd_buf, device)\

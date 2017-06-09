@@ -19,6 +19,7 @@
 #define ID_BUZZER 7
 
 #define DEVICE_CLEAR 30
+#define END_PROGRAM 40
 
 /* Readkey define */
 #define KEY_RELEASE 0

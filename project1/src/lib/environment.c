@@ -32,9 +32,6 @@ construct_environment(struct environment** env)
   new_env->lcd_fd = open(FPGA_TEXT_LCD_DEVICE, O_WRONLY);
   DETECT_DEVICE_ERROR(new_env->lcd_fd, FPGA_TEXT_LCD_DEVICE);
 
-  if (signal(SIGINT, quit_signal) == SIG_ERR)
-    printf("\ncan't catch SIGINT\n");
-
   /* Setting the key of message queue */
   new_env->msg_key = 1234;
 
@@ -69,16 +66,4 @@ destruct_environment(struct environment* env)
   free(env);
 
   printf("Destruct Envrionment\n");
-}
-
-void kill_all_processes(struct environment *env)
-{
-  kill(env->pid_input, SIGINT);
-  kill(env->pid_output, SIGINT);
-  kill(env->pid_main, SIGINT);
-}
-
-void quit_signal(int sig)
-{
-  quit = 1;
 }
