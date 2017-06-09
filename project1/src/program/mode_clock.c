@@ -10,52 +10,46 @@ static message_buf snd_buf;
 static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
+static pthread_t flicker_thread;
+static int is_led_flick_on = 0;
 static unsigned int cur_led;
-static int is_led_flick_on;
 static unsigned int time_second;
-static struct argu_led_flick argu_flick = {
-    .led_flick = &is_led_flick_on,
-    .cur_led = &cur_led,
-    .time_second = &time_second
-};
 
 /* In mode1, this is called to main process as a start routine of pthread.
  * LEDs come out alternately every second.
  */
-void* led_flicker(void *arguments)
+void* led_flicker_handler(void *arguments)
 {
-  struct argu_led_flick* argu = arguments;
-  struct environment *env = argu->env;
   int led_fd = env->led_fd;
-  unsigned int *cur_led = argu->cur_led,
-               *time_second = argu->time_second;
 
   int i = 0;
   unsigned char led_data;
 
-  while (is_led_flick_on && !quit)
+  printf("led_flicker_handler on\n");
+
+  while (is_led_flick_on)
     {
-      *cur_led = 128 | 32;
-      led_data = 128 | 32 | (*time_second); write(led_fd, &led_data, 1);
+      cur_led = 128 | 32;
+      led_data = 128 | 32 | time_second; write(led_fd, &led_data, 1);
       i = 4;
       do
         { 
           usleep(245000);
-          if (quit || !(is_led_flick_on)) break;
+          if (!is_led_flick_on) break;
         } while(--i);
 
-      *cur_led = 16;
-      led_data = 128 | 16 | (*time_second); write(led_fd, &led_data, 1);
+      cur_led = 16;
+      led_data = 128 | 16 | time_second; write(led_fd, &led_data, 1);
       i = 4;
       do
         { 
           usleep(245000);
-          if (quit || !(is_led_flick_on)) break;
+          if (!is_led_flick_on) break;
         } while(--i);
     }
-  led_data = 128 | (*time_second);
+  led_data = 128 | time_second;
 
-  printf("led_flicker terminated\n");
+  printf("led_flicker_handler terminated\n");
   pthread_exit(NULL);
 }
 
@@ -69,8 +63,8 @@ set_init_time(void)
 
   if (!timeinfo)
     {
-      perror("Localtime Error");
       // TODO: kill all processes
+      perror("Localtime Error");
     }
   else
     {
@@ -85,7 +79,6 @@ mode_clock_global_init (struct environment * __env, int __msqid)
 {
   msqid = __msqid;
   env   = __env;
-  argu_flick.env = __env;
 
   set_init_time();
 }
@@ -162,21 +155,18 @@ mode_clock(message_buf rcv_buf)
   // Modify time in board
   if (rcv_buf.mtext[0]) 
     {
-      printf("HI!\n");
       is_led_flick_on ^= 1;
       if (is_led_flick_on
-          && (pthread_create(&flicker_thread, NULL, &led_flicker,
-                             (void*) &argu_flick) != 0)
+          && (pthread_create(&flicker_thread, NULL, &led_flicker_handler, NULL) != 0)
           )
         {
           perror("pthread_create");
-          // TODO: kill all processes or just notice error occurunce.
         }
-      if (! is_led_flick_on)
+      if (!is_led_flick_on)
         {
+          pthread_join(flicker_thread, NULL);
+
           cur_led = 128;
-          usleep(450000);
-          
           snd_buf.mtext[1] = cur_led | time_second;
           set_out_buf(snd_buf, ID_LED);
           MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
