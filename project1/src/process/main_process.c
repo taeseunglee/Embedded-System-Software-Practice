@@ -98,8 +98,6 @@ main_process(struct environment *env)
   free(mode_init);
   free(mode_body);
 
-  destruct_environment(env);
-
   return 0;
 }
 
