@@ -1,5 +1,7 @@
 SRC_DIR = .
 
+C_FLAGS=-pthread -static -c -Wall
+
 build: build.lib build.process
 	$(CC) $(C_FLAGS) main.c -o $(OBJS_DIR)/main.o
 	$(CC) -pthread --static -Wall -o $(SRC_DIR)/../$(MAIN_PROG) $(OBJS_DIR)/*.o
