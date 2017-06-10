@@ -9,15 +9,6 @@ static message_buf snd_buf;
 static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
-#define SHIFT_TEXT(text) \
-  do \
-  { \
-    int t=0; \
-    while (t<LIMIT_TEXT) { text[t] = text[t+1]; t++; } \
-  } while(0);
-
-
-
 static unsigned char text[LEN_LCD];
 static int count, idx_text;
 static unsigned int text_mode;
@@ -31,6 +22,13 @@ const unsigned char map_char[9][3] =
   [8] = {'W','X','Y'}
 };
 /***************************************/
+
+#define SHIFT_TEXT(text) \
+  do \
+  { \
+    int t=0; \
+    while (t<LIMIT_TEXT) { text[t] = text[t+1]; t++; } \
+  } while(0);
 
 void
 mode_text_editor_global_init(struct environment *__env, int __msqid)
