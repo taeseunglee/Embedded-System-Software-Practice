@@ -41,24 +41,27 @@ mode_text_editor_global_init(struct environment *__env, int __msqid)
 void
 mode_text_editor_init()
 {
+  /* init variables */
+  text_mode = TRUE;
+  count = 0, idx_text = -1;
+  memset(text, 0, LEN_LCD);
+
+
+  /* init devices */
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  text_mode = TRUE;
-  count = 0, idx_text = -1;
-
+  // LED
   snd_buf.mtext[1] = 32; // Set D3 led
   set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  memset(text, 0, LEN_LCD);
-  memcpy(snd_buf.mtext+1, text, LEN_LCD);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
+  // FND
   memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
   set_out_buf(snd_buf, ID_FND);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
+  // DOT
   memcpy(snd_buf.mtext+1, fpga_alpha, LEN_DOT);
   set_out_buf(snd_buf, ID_DOT);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

@@ -43,14 +43,13 @@ mode_counter_global_init (struct environment * __env, int __msqid)
 void
 mode_counter_init(void)
 {
+  /* init variables */
   idx_base = 0, count = 0;
 
-  set_out_buf(snd_buf, DEVICE_CLEAR);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
+  /* init devices */
   snd_buf.mtext[1] = led_num[0];
+  set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  memset(snd_buf.mtext, 0, sizeof(snd_buf.mtext));
 }
 
 void

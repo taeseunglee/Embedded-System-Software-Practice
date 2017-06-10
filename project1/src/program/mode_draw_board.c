@@ -25,15 +25,21 @@ mode_draw_board_global_init(struct environment *__env, int __msqid)
 {
   env   = __env;
   msqid = __msqid;
-
-  argu_cursor.env = env;
-  argu_cursor.mode = &(env->mode);
 }
 
 
 void
 mode_draw_board_init()
 {
+  /* init variable */
+  is_mode_running = TRUE;
+  is_cursor_moved = FALSE;
+  cursor.x = 0, cursor.y = 0;
+  cursor_hide = 1;
+  count = 0;
+  memset(mask, 0x00, size_mask);
+
+  /* init devices */
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 

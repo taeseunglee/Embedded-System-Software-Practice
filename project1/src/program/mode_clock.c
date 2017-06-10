@@ -49,6 +49,10 @@ mode_clock_global_init (struct environment * __env, int __msqid)
 void
 mode_clock_init(void)
 {
+  /* init variables */
+  is_led_flick_on = 0;
+
+  /* init devices */
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
@@ -84,9 +88,8 @@ mode_clock_exit(void)
  */
 void* led_flicker_handler(void *arguments)
 {
-  int led_fd = env->led_fd;
-
   int i = 0;
+  int led_fd = env->led_fd;
   unsigned char led_data;
 
   printf("led_flicker_handler on\n");
@@ -156,7 +159,6 @@ mode_clock(message_buf rcv_buf)
       if (rcv_buf.mtext[1]) set_init_time();
       if (rcv_buf.mtext[2]) ++ cur_hour;
       if (rcv_buf.mtext[3]) ++ cur_min;
-
       cur_hour %= 24;
 
       // send fnd data
