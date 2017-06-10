@@ -9,4 +9,7 @@
 #define MAX_TEXT 8
 #define LIMIT_TEXT 7  // MAX_TEXT-1
 
+/* MARKING PARAMETER */
+#define UNUSED
+
 #endif
