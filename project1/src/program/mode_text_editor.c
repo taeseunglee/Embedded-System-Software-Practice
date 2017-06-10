@@ -70,9 +70,10 @@ mode_text_editor_init()
 void
 mode_text_editor_exit()
 {
-   set_out_buf(snd_buf, DEVICE_CLEAR);
+  set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
+
 
 /* ------------------------------------------------------------------------ */
 void
@@ -163,11 +164,13 @@ mode_text_editor(message_buf rcv_buf)
 
   count %= 10000;
 
+  /* Set fnd - count */
   snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
   snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
   set_out_buf(snd_buf, ID_FND);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
+  /* set LCD - text */
   memcpy(snd_buf.mtext+1, text, LEN_LCD);
   set_out_buf(snd_buf, ID_LCD);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

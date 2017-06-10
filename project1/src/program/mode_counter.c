@@ -82,7 +82,7 @@ mode_counter(message_buf rcv_buf)
 
   count %= 10000;
 
-  // Update the Count
+  /* Update the Count */
   if (idx_base) 
     { /* not base-10 */
       snd_buf.mtext[4] = (count & digit[idx_base][3]);

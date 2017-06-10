@@ -11,7 +11,7 @@ static const size_t buf_length = sizeof(message_buf);
 static struct environment *env;
 
 static pthread_t flicker_thread;
-static int is_led_flick_on = 0;
+static int is_led_flick_on;
 static unsigned int cur_led;
 
 static void set_init_time(void);
@@ -25,10 +25,7 @@ set_init_time(void)
   struct tm *timeinfo = localtime (&rawtime);
 
   if (!timeinfo)
-    {
-      // TODO: kill all processes
-      perror("Localtime Error");
-    }
+    perror("Localtime Error");
   else
     {
       cur_hour = timeinfo->tm_hour;
@@ -104,8 +101,7 @@ void* led_flicker_handler(void *arguments)
       do
         {
           usleep(245000);
-          if (!is_led_flick_on) break;
-        } while(--i);
+        } while(--i && is_led_flick_on);
 
       cur_led = 16;
       led_data = 128 | 16;
