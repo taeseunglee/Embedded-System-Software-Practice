@@ -93,7 +93,7 @@ void* print_cursor(void *arguments UNUSED)
 
       // hide
       i = 5;
-      write(dot_fd, res, LEN_DOT);
+      write(dot_fd, mask, LEN_DOT);
       do
         {
           usleep(200000);
@@ -184,12 +184,13 @@ mode_draw_board(message_buf rcv_buf)
   if (rcv_buf.mtext[8])
     {
       // Invert the board
-      int i = 10;
+      int i = 9;
       do 
         {
-          snd_buf.mtext[i] ^= 0xFF;
-        } while(--i);
+          mask[i] ^= 0xFF;
+        } while(i--);
       ++ count;
+      memcpy(snd_buf.mtext+1, mask, size_mask);
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
     }
