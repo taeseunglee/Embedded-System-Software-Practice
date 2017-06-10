@@ -20,6 +20,47 @@ static struct argu_mode_cursor argu_cursor =
   };
 
 
+void
+mode_draw_board_global_init(struct environment *__env, int __msqid)
+{
+  env   = __env;
+  msqid = __msqid;
+
+  argu_cursor.env = env;
+  argu_cursor.mode = &(env->mode);
+}
+
+
+void
+mode_draw_board_init()
+{
+  set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
+  snd_buf.mtext[1] = 16; // Set D4 led
+  set_out_buf(snd_buf, ID_LED);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
+  memset(snd_buf.mtext+1, 0, size_mask);
+  set_out_buf(snd_buf, ID_DOT);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+
+  cursor.x = 0, cursor.y = 0;
+
+  count = 0;
+  if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0)
+    perror("pthread_create");
+}
+
+void
+mode_draw_board_exit()
+{
+  set_out_buf(snd_buf, DEVICE_CLEAR);
+  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
+}
+
+
+/* ------------------------------------------------------------------------ */
 /* In mode4, this is called to main process as a start routine of pthread for
  * print cursor at DOT device */
 void* print_cursor(void *arguments)
@@ -64,44 +105,6 @@ void* print_cursor(void *arguments)
   memset(mask, 0, LEN_DOT);
 
   pthread_exit(NULL);
-}
-
-void
-mode_draw_board_global_init(struct environment *__env, int __msqid)
-{
-  env   = __env;
-  msqid = __msqid;
-
-  argu_cursor.env = env;
-  argu_cursor.mode = &(env->mode);
-}
-
-void
-mode_draw_board_init()
-{
-  set_out_buf(snd_buf, DEVICE_CLEAR);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-  snd_buf.mtext[1] = 16; // Set D4 led
-  set_out_buf(snd_buf, ID_LED);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-  memset(snd_buf.mtext+1, 0, size_mask);
-  set_out_buf(snd_buf, ID_DOT);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-  cursor.x = 0, cursor.y = 0;
-
-  count = 0;
-  if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0)
-    perror("pthread_create");
-}
-
-void
-mode_draw_board_exit()
-{
-   set_out_buf(snd_buf, DEVICE_CLEAR);
-  MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
 void

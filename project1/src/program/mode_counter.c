@@ -60,6 +60,8 @@ mode_counter_exit(void)
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
+
+/* ------------------------------------------------------------------------ */
 void
 mode_counter(message_buf rcv_buf)
 {

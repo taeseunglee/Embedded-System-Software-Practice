@@ -73,6 +73,7 @@ mode_text_editor_exit()
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
+/* ------------------------------------------------------------------------ */
 void
 mode_text_editor(message_buf rcv_buf)
 {

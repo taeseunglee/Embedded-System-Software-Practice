@@ -15,44 +15,6 @@ static int is_led_flick_on = 0;
 static unsigned int cur_led;
 static unsigned int time_second;
 
-/* In mode1, this is called to main process as a start routine of pthread.
- * LEDs come out alternately every second.
- */
-void* led_flicker_handler(void *arguments)
-{
-  int led_fd = env->led_fd;
-
-  int i = 0;
-  unsigned char led_data;
-
-  printf("led_flicker_handler on\n");
-
-  while (is_led_flick_on)
-    {
-      cur_led = 128 | 32;
-      led_data = 128 | 32 | time_second; write(led_fd, &led_data, 1);
-      i = 4;
-      do
-        { 
-          usleep(245000);
-          if (!is_led_flick_on) break;
-        } while(--i);
-
-      cur_led = 16;
-      led_data = 128 | 16 | time_second; write(led_fd, &led_data, 1);
-      i = 4;
-      do
-        { 
-          usleep(245000);
-          if (!is_led_flick_on) break;
-        } while(--i);
-    }
-  led_data = 128 | time_second;
-
-  printf("led_flicker_handler terminated\n");
-  pthread_exit(NULL);
-}
-
 static void
 set_init_time(void)
 {
@@ -114,10 +76,49 @@ mode_clock_exit(void)
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
+
+/* ------------------------------------------------------------------------ */
+/* In mode1, this is called to main process as a start routine of pthread.
+ * LEDs come out alternately every second.
+ */
+void* led_flicker_handler(void *arguments)
+{
+  int led_fd = env->led_fd;
+
+  int i = 0;
+  unsigned char led_data;
+
+  printf("led_flicker_handler on\n");
+
+  while (is_led_flick_on)
+    {
+      cur_led = 128 | 32;
+      led_data = 128 | 32 | time_second; write(led_fd, &led_data, 1);
+      i = 4;
+      do
+        {
+          usleep(245000);
+          if (!is_led_flick_on) break;
+        } while(--i);
+
+      cur_led = 16;
+      led_data = 128 | 16 | time_second; write(led_fd, &led_data, 1);
+      i = 4;
+      do
+        {
+          usleep(245000);
+          if (!is_led_flick_on) break;
+        } while(--i);
+    }
+  led_data = 128 | time_second;
+
+  printf("led_flicker_handler terminated\n");
+  pthread_exit(NULL);
+}
+
 void 
 mode_clock(message_buf rcv_buf)
 {
-  /* declare and set variables for Mode1 */
   int time_spent;
   clock_t end;
 

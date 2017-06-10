@@ -37,6 +37,7 @@ mode_setting_exit()
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
 
+/* ------------------------------------------------------------------------ */
 void
 mode_setting(message_buf rcv_buf)
 {
