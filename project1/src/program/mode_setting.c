@@ -22,8 +22,7 @@ mode_setting_init(void)
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  snd_buf.mtext[1] = 8 | (128*env->mode5_flag.mode_time_goes | 64*env->mode5_flag.mode_4th_of_base10);
-
+  snd_buf.mtext[1] = 8 | 64 * env->mode5_flag.mode_4th_of_base10; // D4
   set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
@@ -41,12 +40,6 @@ mode_setting_exit()
 void
 mode_setting(message_buf rcv_buf)
 {
-  if (rcv_buf.mtext[0])
-    {
-      env->mode5_flag.mode_time_goes ^= 1;
-      env->begin = clock();
-      ++ count;
-    }
   if (rcv_buf.mtext[1])
     {
       env->mode5_flag.mode_4th_of_base10 ^= 1;
@@ -54,7 +47,6 @@ mode_setting(message_buf rcv_buf)
     }
 
   snd_buf.mtext[1] = 8
-    | 128*env->mode5_flag.mode_time_goes
     | 64 *env->mode5_flag.mode_4th_of_base10;
   set_out_buf(snd_buf, ID_LED);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);

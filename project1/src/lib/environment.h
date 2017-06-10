@@ -14,7 +14,6 @@
 
 struct __mode5_flag
   {
-    unsigned int mode_time_goes: 1; // for mode 1
     unsigned int mode_4th_of_base10: 1; // for mode 2, print 4th digit while the base of counter is 10
   } mode5_flag;
 

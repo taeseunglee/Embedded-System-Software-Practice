@@ -13,7 +13,8 @@ static struct environment *env;
 static pthread_t flicker_thread;
 static int is_led_flick_on = 0;
 static unsigned int cur_led;
-static unsigned int time_second;
+
+static void set_init_time(void);
 
 static void
 set_init_time(void)
@@ -93,7 +94,9 @@ void* led_flicker_handler(void *arguments)
   while (is_led_flick_on)
     {
       cur_led = 128 | 32;
-      led_data = 128 | 32 | time_second; write(led_fd, &led_data, 1);
+      led_data = 128 | 32;
+      write(led_fd, &led_data, 1);
+
       i = 4;
       do
         {
@@ -102,7 +105,8 @@ void* led_flicker_handler(void *arguments)
         } while(--i);
 
       cur_led = 16;
-      led_data = 128 | 16 | time_second; write(led_fd, &led_data, 1);
+      led_data = 128 | 16;
+      write(led_fd, &led_data, 1);
       i = 4;
       do
         {
@@ -110,7 +114,7 @@ void* led_flicker_handler(void *arguments)
           if (!is_led_flick_on) break;
         } while(--i);
     }
-  led_data = 128 | time_second;
+  led_data = 128;
 
   printf("led_flicker_handler terminated\n");
   pthread_exit(NULL);
@@ -119,47 +123,12 @@ void* led_flicker_handler(void *arguments)
 void 
 mode_clock(message_buf rcv_buf)
 {
-  int time_spent;
-  clock_t end;
-
-
-  if (env->mode5_flag.mode_time_goes)
-    {
-      end = clock();
-      time_spent = (int) (end - env->begin) / CLOCKS_PER_SEC;
-
-      // 1second goes
-      if (time_spent)
-        {
-          env->begin = end;
-          ++ time_second;
-
-          snd_buf.mtext[1] = cur_led | time_second;
-          set_out_buf(snd_buf, ID_LED);
-          MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-
-          if (time_second/60)
-            {
-              cur_min += time_second/60;
-              time_second %= 60;
-
-              snd_buf.mtext[1] = cur_hour/10;
-              snd_buf.mtext[2] = cur_hour%10;
-              snd_buf.mtext[3] = cur_min/10;
-              snd_buf.mtext[4] = cur_min%10;
-
-              set_out_buf(snd_buf, ID_FND);
-              MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-            }
-        }
-    }
   // Modify time in board
   if (rcv_buf.mtext[0]) 
     {
       is_led_flick_on ^= 1;
       if (is_led_flick_on
-          && (pthread_create(&flicker_thread, NULL, &led_flicker_handler, NULL) != 0)
-          )
+          && (pthread_create(&flicker_thread, NULL, &led_flicker_handler, NULL) != 0))
         {
           perror("pthread_create");
         }
@@ -168,7 +137,7 @@ mode_clock(message_buf rcv_buf)
           pthread_join(flicker_thread, NULL);
 
           cur_led = 128;
-          snd_buf.mtext[1] = cur_led | time_second;
+          snd_buf.mtext[1] = cur_led;
           set_out_buf(snd_buf, ID_LED);
           MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
         }
