@@ -12,12 +12,8 @@ static pthread_t cursor_thread;
 static unsigned int cursor_hide, count;
 static unsigned char mask[10];
 static const size_t size_mask = sizeof(mask);
-static struct argu_mode_cursor argu_cursor =
-  {
-    .cursor = &cursor,
-    .mask = snd_buf.mtext+1,
-    .cursor_hide = &cursor_hide,
-  };
+static int is_mode_running = FALSE;
+static int is_cursor_moved = FALSE;
 
 
 void
@@ -51,16 +47,17 @@ mode_draw_board_init()
   set_out_buf(snd_buf, ID_DOT);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 
-  cursor.x = 0, cursor.y = 0;
-
-  count = 0;
-  if (pthread_create(&cursor_thread, NULL, &print_cursor, (void*)&argu_cursor) != 0)
+  /* make pthread with beginning of mode */
+  if (pthread_create(&cursor_thread, NULL, &print_cursor, NULL) != 0)
     perror("pthread_create");
 }
 
 void
 mode_draw_board_exit()
 {
+  is_mode_running = FALSE;
+  pthread_join(cursor_thread, NULL);
+
   set_out_buf(snd_buf, DEVICE_CLEAR);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
 }
@@ -69,47 +66,42 @@ mode_draw_board_exit()
 /* ------------------------------------------------------------------------ */
 /* In mode4, this is called to main process as a start routine of pthread for
  * print cursor at DOT device */
-void* print_cursor(void *arguments)
+void* print_cursor(void *arguments UNUSED)
 {
-  struct argu_mode_cursor *argu = arguments;
-
-  unsigned int * mode = argu->mode,
-               * cursor_hide = argu->cursor_hide;
-  struct cursor* cursor = argu->cursor;
-  unsigned char*mask = argu->mask, res[10] = {0};
-
-  struct environment *env = argu->env;
+  unsigned char res[10] = {0};
   int dot_fd = env->dot_fd;
 
   int i = 0;
 
-  while ((*mode) == 3)
+  printf("print_cursor on\n");
+  while (is_mode_running)
     {
-      if (*cursor_hide)
-        write(dot_fd, mask, LEN_DOT);
-      else
+      if (!cursor_hide)
         {
           i = 4;
-          do {
+          do
+            {
               memcpy(res, mask, LEN_DOT);
-              res[cursor->y] ^= (0x80>>(cursor->x));
+              res[cursor.y] ^= (0x40>>(cursor.x));
               write(dot_fd, res, LEN_DOT);
               usleep(250000);
-          } while(--i);
+            } while(--i && is_mode_running);
         }
 
-      if ((*mode) != 3)
+      if (!is_mode_running)
         break;
 
       // hide
-      i = 4;
-      do {
-          write(dot_fd, res, LEN_DOT);
-          usleep(250000);
-      } while(--i);
+      i = 5;
+      write(dot_fd, res, LEN_DOT);
+      do
+        {
+          usleep(200000);
+        } while(--i && (is_mode_running & !is_cursor_moved));
+      is_cursor_moved = FALSE;
     }
-  memset(mask, 0, LEN_DOT);
 
+  printf("print_cursor off\n");
   pthread_exit(NULL);
 }
 
@@ -117,28 +109,40 @@ void
 mode_draw_board(message_buf rcv_buf)
 {
   /* Move the cursor */
+  // up
   if(rcv_buf.mtext[1])
     {
-      if (cursor.y)
+      if (cursor.y) {
         -- cursor.y;
+        is_cursor_moved = TRUE;
+      }
       ++ count;
     }
+  // left
   if(rcv_buf.mtext[3])
     {
-      if (cursor.x) 
+      if (cursor.x) {
         -- cursor.x;
+        is_cursor_moved = TRUE;
+      }
       ++ count;
     }
+  // right
   if(rcv_buf.mtext[5])
     {
-      if (!(cursor.x > 6))
+      if (!(cursor.x > 6)) {
         ++ cursor.x;
+        is_cursor_moved = TRUE;
+      }
       ++ count;
     }
+  // down
   if(rcv_buf.mtext[7])
     {
-      if (!(cursor.y > 9))
+      if (!(cursor.y > 9)) {
         ++ cursor.y;
+        is_cursor_moved = TRUE;
+      }
       ++ count;
     }
 
@@ -146,7 +150,8 @@ mode_draw_board(message_buf rcv_buf)
   if (rcv_buf.mtext[0])
     {
       cursor.x = 0, cursor.y = 0;
-      memset(snd_buf.mtext+1, 0x00, sizeof(mask));
+      memset(mask, 0x00, size_mask);
+      memset(snd_buf.mtext+1, 0x00, size_mask);
 
       ++ count;
       set_out_buf(snd_buf, ID_DOT);
@@ -162,15 +167,17 @@ mode_draw_board(message_buf rcv_buf)
   if (rcv_buf.mtext[4])
     {
       // select and toggle the point
-      snd_buf.mtext[cursor.y+1] ^= (0x40 >> cursor.x);
       ++ count;
+      mask[cursor.y] ^= (0x40 >> cursor.x);
+      memcpy(snd_buf.mtext+1, mask, size_mask);
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
     }
   if (rcv_buf.mtext[6])
     {
-      memset(snd_buf.mtext+1, 0x00, sizeof(mask));
       ++ count;
+      memset(mask, 0x00, size_mask);
+      memset(snd_buf.mtext+1, 0x00, size_mask);
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
     }
@@ -178,21 +185,19 @@ mode_draw_board(message_buf rcv_buf)
     {
       // Invert the board
       int i = 10;
-      do {
-        snd_buf.mtext[i] ^= 0xFF;
-      } while(--i);
+      do 
+        {
+          snd_buf.mtext[i] ^= 0xFF;
+        } while(--i);
       ++ count;
       set_out_buf(snd_buf, ID_DOT);
       MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
     }
 
-  // TODO: Use mask!! --> change "Use directly snd_buf.mtext" to "Use mask as a field and copy this to mtext"
-  memcpy(mask, snd_buf.mtext+1, size_mask);
   snd_buf.mtext[1] = (count/1000)%10; snd_buf.mtext[2] = (count/100)%10;
   snd_buf.mtext[3] = (count/10)%10;  snd_buf.mtext[4] = count%10;
   set_out_buf(snd_buf, ID_FND);
   MSGSND_OR_DIE(msqid, &snd_buf, buf_length, IPC_NOWAIT);
-  memcpy(snd_buf.mtext+1, mask, size_mask);
 
   count %= 10000;
 }
