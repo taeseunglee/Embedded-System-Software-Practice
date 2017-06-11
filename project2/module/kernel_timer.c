@@ -58,6 +58,8 @@ ssize_t kernel_timer_write(struct file *, const char *, size_t, loff_t *);
 long kernel_timer_ioctl(struct file *, unsigned int, unsigned long);
 void kernel_timer_device_set(struct file * file);
 
+/* variables about this module */
+static int kernel_timer_usage = 0;
 static struct file_operations kernel_timer_fops =
 {
   .open = kernel_timer_open,
@@ -93,9 +95,7 @@ kernel_timer_device_set(struct file * file)
   char dev_data[33];
 
 
-  /* TODO: Error check */
-  /** set devices **/
-
+  /*** set devices ***/
   /* set fnd device */
   memset(dev_data, 0, 4);
   dev_data[mydata.loc_fnd] = mydata.pat_fnd;
@@ -306,4 +306,4 @@ module_init( kernel_timer_init);
 module_exit( kernel_timer_exit);
 
 MODULE_LICENSE ("GPL");
-MODULE_AUTHOR ("author");
+MODULE_AUTHOR ("Taeseung Lee");
