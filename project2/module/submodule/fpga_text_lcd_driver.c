@@ -23,13 +23,10 @@ AUTH : largest@huins.com */
 
 
 //Global variable
-static int fpga_text_lcd_port_usage = 0;
 static unsigned char *iom_fpga_text_lcd_addr;
 
 // define functions...
 ssize_t iom_fpga_text_lcd_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what);
-int iom_fpga_text_lcd_open(struct inode *minode, struct file *mfile);
-int iom_fpga_text_lcd_release(struct inode *minode, struct file *mfile);
 void iom_fpga_text_lcd_init(void);
 void iom_fpga_text_lcd_exit(void);
 
@@ -37,29 +34,8 @@ void iom_fpga_text_lcd_exit(void);
 struct file_operations iom_fpga_text_lcd_fops =
 {
   .owner  = THIS_MODULE,
-  .open   = iom_fpga_text_lcd_open,
   .write  = iom_fpga_text_lcd_write,	
-  .release=	iom_fpga_text_lcd_release,
 };
-
-// when fpga_text_lcd device open ,call this function
-int iom_fpga_text_lcd_open(struct inode *minode, struct file *mfile) 
-{	
-  if(fpga_text_lcd_port_usage != 0) return -EBUSY;
-
-  fpga_text_lcd_port_usage = 1;
-
-  return 0;
-}
-
-// when fpga_text_lcd device close ,call this function
-int iom_fpga_text_lcd_release(struct inode *minode, struct file *mfile) 
-{
-  fpga_text_lcd_port_usage = 0;
-
-  return 0;
-}
-
 
 // when write to fpga_text_lcd device  ,call this function
 ssize_t iom_fpga_text_lcd_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what) 

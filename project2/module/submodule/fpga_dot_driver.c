@@ -24,13 +24,10 @@ AUTH : largest@huins.com*/
 
 
 //Global variable
-static int fpga_dot_port_usage = 0;
 static unsigned char *iom_fpga_dot_addr;
 
 // define functions...
 ssize_t iom_fpga_dot_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what);
-int iom_fpga_dot_open(struct inode *minode, struct file *mfile);
-int iom_fpga_dot_release(struct inode *minode, struct file *mfile);
 void iom_fpga_dot_init(void);
 void iom_fpga_dot_exit(void);
 
@@ -38,29 +35,8 @@ void iom_fpga_dot_exit(void);
 struct file_operations iom_fpga_dot_fops =
 {
   .owner  = THIS_MODULE,
-  .open   = iom_fpga_dot_open,
   .write  = iom_fpga_dot_write,	
-  .release= iom_fpga_dot_release,
 };
-
-// TODO: remove these open and release function
-// when fpga_dot device open, call this function
-int iom_fpga_dot_open(struct inode *minode, struct file *mfile) 
-{	
-  if(fpga_dot_port_usage != 0) return -EBUSY;
-
-  fpga_dot_port_usage = 1;
-
-  return 0;
-}
-
-// when fpga_dot device close ,call this function
-int iom_fpga_dot_release(struct inode *minode, struct file *mfile) 
-{
-  fpga_dot_port_usage = 0;
-
-  return 0;
-}
 
 // when write to fpga_dot device  ,call this function
 ssize_t iom_fpga_dot_write(struct file *inode, const char *gdata, size_t length, loff_t *off_what) 

@@ -160,11 +160,6 @@ kernel_timer_open(struct inode *minode, struct file *mfile)
     return -EBUSY;
   kernel_timer_usage = 1;
 
-  iom_fpga_dot_fops.open(minode, mfile);
-  iom_fpga_fnd_fops.open(minode, mfile);
-  iom_led_fops.open(minode, mfile);
-  iom_fpga_text_lcd_fops.open(minode, mfile);
-
   return 0;
 }
 
