@@ -357,3 +357,4 @@ static void __exit stopwatch_exit(void)
 module_init(stopwatch_init);
 module_exit(stopwatch_exit);
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR ("Taeseung Lee");
