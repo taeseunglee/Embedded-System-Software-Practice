@@ -46,7 +46,7 @@ main(int argc, char **argv)
       return -1;
     }
 
-  timer_fd = open("/dev/dev_driver", O_WRONLY);
+  timer_fd = open("/dev/kernel_timer", O_WRONLY);
   if (timer_fd < 0)
     {
       printf("Timer Device Open Failured!\n");

@@ -9,7 +9,7 @@
 #define KERNEL_TIMER_MAJOR 242
 #define KERNEL_TIMER_MINOR 0
 /* The name of the device file */
-#define KERNEL_TIMER_NAME "dev_driver" // TODO: change this to "kernel_timer"
+#define KERNEL_TIMER_NAME "kernel_timer"
 
 /* _IO, _IOW, _IOR, _IORW are helper macros to create a unique ioctl identifier
 and add the required R/W needed features (direction). */

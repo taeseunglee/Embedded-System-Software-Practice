@@ -16,7 +16,7 @@ $ make -C ./module/ # Host
 $ adb push kernel_timer.ko /sdcard/ # Host
 $ insmod kernel_timer.ko # Target Board. But it need to copy from /sdcard/ to
 .(working directory)
-$ mknod /dev/dev_driver c 242 0 # Target Board.
+$ mknod /dev/kernel_timer c 242 0 # Target Board.
 ```
 
 2) Add System call like ./kernel/ directory structure
