@@ -16,12 +16,10 @@
 
 
 
-static int kernel_timer_usage = 0;
-
-
 /* shift right */
-#define __SHIFT_TEXT_0(str, idx) do { \
-    idx = 15; \
+#define __SHIFT_TEXT_RIGHT(str) \
+  do { \
+    int idx = 15; \
     do { \
       str[idx] = str[idx-1]; \
     } while (--idx); \
@@ -29,14 +27,24 @@ static int kernel_timer_usage = 0;
   } while (0);
 
 /* shift left */
-#define __SHIFT_TEXT_1(str, idx) do { \
-    idx = 0; \
+#define __SHIFT_TEXT_LEFT(str) \
+  do { \
+    int idx = 0; \
     do { \
       str[idx] = str[idx+1]; \
       ++idx; \
     } while(idx < 15); \
     str[15] = 0; \
   } while(0);
+
+/* Direction value
+ * RIGHT = 0, LEFT = 1
+ * */
+#define SHIFT_TEXT(str, direction) \
+  { \
+    if (direction) { __SHIFT_TEXT_LEFT(str); } \
+    else { __SHIFT_TEXT_RIGHT(str); } \
+  }
  
 
 static int remained_stn_cnt;
@@ -82,7 +90,6 @@ static int len_name;
 void
 kernel_timer_device_set(struct file * file)
 {
-  int idx = 0;
   char dev_data[33];
 
 
@@ -122,10 +129,7 @@ kernel_timer_device_set(struct file * file)
       direction_stn ^= 1;
     }
 
-  if (direction_stn)
-    { __SHIFT_TEXT_1(stn, idx); }
-  else
-    { __SHIFT_TEXT_0(stn, idx); }
+  SHIFT_TEXT(stn, direction_stn);
 
 
   if (!remained_name_cnt)
@@ -134,10 +138,7 @@ kernel_timer_device_set(struct file * file)
       direction_name ^= 1;
     }
 
-  if (direction_name)
-    { __SHIFT_TEXT_1(name, idx); }
-  else
-    { __SHIFT_TEXT_0(name, idx); }
+  SHIFT_TEXT(name, direction_name);
 
   -- remained_stn_cnt;
   -- remained_name_cnt;
