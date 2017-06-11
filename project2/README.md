@@ -11,19 +11,21 @@ driver implementation.
 
 ## Usage
 1) Insert a kernel timer module
-```
-$ ./make -C ./module/ # Host
+``` shell
+$ make -C ./module/ # Host
 $ adb push kernel_timer.ko /sdcard/ # Host
-$ insmod kernel_timer.ko # Target Board. But it need to copy from /sdcard/ to .
+$ insmod kernel_timer.ko # Target Board. But it need to copy from /sdcard/ to
+.(working directory)
 $ mknod /dev/dev_driver c 242 0 # Target Board.
 ```
 
-2) Add System call like kernel/ directory structure
+2) Add System call like ./kernel/ directory structure
 3) Make an execution file of app.c and Send app to a target board.
-```
+``` shell
 $ make -C ./app/ # Host
 $ adb push app /sdcard/ # Host
-$ ./app 10 10 1000 # Example. Target Board. But it need to copy from /sdcard/ to .
+$ ./app 10 10 1000 # Target Board. This is an example, but it need to copy from
+/sdcard/ to .
 ```
 
 4) Remove the kernel timer module
