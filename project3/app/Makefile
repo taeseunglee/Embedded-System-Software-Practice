@@ -5,3 +5,4 @@ app: app.c
 
 clean : 
 	rm -f app
+	rm -rf .tmp_versions
