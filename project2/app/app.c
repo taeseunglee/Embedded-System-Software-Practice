@@ -90,7 +90,7 @@ atoi_and_check (const char *num IN)
   for (i = 0; num[i]; ++i)
     {
       tmp = num[i] - 0x30;
-      if (unlikely(tmp < 0 || tmp > 9))
+      if (unlikely(tmp < 0 || tmp > 8))
         {
           perror("[check_out_atoi] Arguments Error\n");
           exit(-1);
