@@ -44,9 +44,9 @@ interrupt implementation.
 ## Final Project for Embeded system software with Taeguk Kwon
 
 ### Description
-Modify android native framework for project.
-Modified Android Framework : Surface Flinger, Graphics part of HAL
-Android Version : Kitkat (API 19)
+* Modify android native framework for project.
+* Modified Android Framework : Surface Flinger, Graphics part of HAL
+* Android Version : Kitkat (API 19)
 
 ### Author
 * Taeseung Lee (me)
